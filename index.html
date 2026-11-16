@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tecnologia para Todos · Aprenda programação do zero</title>
+  <meta name="description" content="Tecnologia para Todos — Projeto Educacional Aberto • Feito para Iniciantes. Aprenda programação do zero, sem complicação e direto no navegador." />
+  <meta name="theme-color" content="#131B3A" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23131B3A'/%3E%3Cpath d='M18 22l10 10-10 10' stroke='%23FACC15' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M32 44h14' stroke='%235EEAD4' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E" />
+
+  <!-- Fontes: Poppins (títulos, como nos slides), Plus Jakarta Sans (texto) e JetBrains Mono (código) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS (Play CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            creme: { DEFAULT: '#FAF7F2', 100: '#F8F6F0', 200: '#F1EDE4' },
+            navy: { DEFAULT: '#131B3A', 900: '#0F172A', 950: '#0A0F24', 800: '#1B2550', 700: '#26336B' },
+            sol: { DEFAULT: '#FFC633', soft: '#FFF4CC' },
+            menta: { DEFAULT: '#5EEAD4', soft: '#DDFBF4' },
+            salmao: { DEFAULT: '#FBB3A3', soft: '#FFE9E3' },
+            lavanda: { DEFAULT: '#C4B5FD', soft: '#EEE9FF' },
+            coral: { DEFAULT: '#FF6B57', soft: '#FFE3DE' },
+            ceu: { DEFAULT: '#93C5FD', soft: '#E3EFFF' },
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+            display: ['Poppins', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', '"Fira Code"', 'ui-monospace', 'monospace'],
+          },
+          boxShadow: {
+            soft: '0 1px 2px rgba(19,27,58,.04), 0 8px 24px -12px rgba(19,27,58,.18)',
+            lift: '0 2px 4px rgba(19,27,58,.06), 0 18px 40px -18px rgba(19,27,58,.35)',
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body class="bg-creme text-navy font-sans antialiased min-h-screen flex flex-col">
+  <a href="#conteudo" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:bg-navy focus:text-white focus:px-4 focus:py-2 focus:rounded-xl">Pular para o conteúdo</a>
+
+  <!-- ===================== CABEÇALHO ===================== -->
+  <header class="sticky top-0 z-40 bg-creme/90 backdrop-blur border-b border-navy/5">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center gap-x-6 gap-y-3">
+      <a href="#inicio" class="flex items-center gap-3 group" aria-label="Tecnologia para Todos - início">
+        <span class="w-11 h-11 rounded-2xl bg-navy grid place-items-center shadow-soft group-hover:scale-105 transition">
+          <svg viewBox="0 0 64 64" class="w-7 h-7" aria-hidden="true"><path d="M18 22l10 10-10 10" stroke="#FACC15" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 44h14" stroke="#5EEAD4" stroke-width="6" stroke-linecap="round"/></svg>
+        </span>
+        <span class="leading-tight">
+          <span class="block font-display font-extrabold text-lg sm:text-xl tracking-tight">Tecnologia para Todos</span>
+          <span class="block text-xs font-semibold uppercase tracking-[0.12em] text-navy/55">Projeto Educacional Aberto • Feito para Iniciantes</span>
+        </span>
+      </a>
+
+      <nav class="ml-auto w-full lg:w-auto" aria-label="Seções">
+        <div role="tablist" class="tab-bar flex gap-1 p-1 bg-white rounded-2xl shadow-soft border border-navy/5 overflow-x-auto">
+          <button role="tab" data-tab="inicio" id="tab-inicio" aria-controls="view-inicio" class="tab-btn">
+            <span aria-hidden="true">🏠</span> Início
+          </button>
+          <button role="tab" data-tab="aulas" id="tab-aulas" aria-controls="view-aulas" class="tab-btn">
+            <span aria-hidden="true">📘</span> Trilha de Aulas
+          </button>
+          <button role="tab" data-tab="glossario" id="tab-glossario" aria-controls="view-glossario" class="tab-btn">
+            <span aria-hidden="true">📖</span> Glossário
+          </button>
+          <button role="tab" data-tab="playground" id="tab-playground" aria-controls="view-playground" class="tab-btn">
+            <span aria-hidden="true">💻</span> Playground
+          </button>
+          <button role="tab" data-tab="melhorias" id="tab-melhorias" aria-controls="view-melhorias" class="tab-btn">
+            <span aria-hidden="true">💡</span> Melhorias &amp; Bugs
+            <span id="issues-nav-badge" class="ml-0.5 text-xs font-extrabold px-2 py-0.5 rounded-full bg-sol-soft text-amber-900">0</span>
+          </button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main id="conteudo" class="flex-1">
+
+    <!-- ===================== 🏠 PÁGINA PRINCIPAL (HOME) ===================== -->
+    <section id="view-inicio" role="tabpanel" aria-labelledby="tab-inicio" class="view max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+
+      <!-- 1. Hero Section (Abertura de Impacto) -->
+      <div class="rounded-3xl bg-white border border-navy/10 p-6 sm:p-10 lg:p-12 shadow-lift relative overflow-hidden">
+        <div class="grid gap-10 lg:grid-cols-12 items-center">
+          <div class="lg:col-span-7">
+            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sol-soft border border-amber-300/70 text-navy font-extrabold text-xs sm:text-sm tracking-wide">
+              🚀 Projeto Educacional Aberto • Feito para Iniciantes
+            </span>
+
+            <h1 class="font-display font-extrabold text-3xl sm:text-5xl lg:text-[3.25rem] tracking-tight leading-[1.08] mt-5 text-navy">
+              Aprenda programação do zero, sem complicação e direto no navegador.
+            </h1>
+
+            <p class="mt-5 text-lg sm:text-xl text-navy/75 leading-relaxed max-w-2xl">
+              Uma plataforma gratuita e interativa criada para derrubar barreiras técnicas. Estude os conceitos essenciais, consulte o glossário simplificado e teste seu código na hora — sem precisar instalar nada.
+            </p>
+
+            <div class="mt-8 flex flex-wrap items-center gap-3.5">
+              <button type="button" data-go-tab="aulas" class="btn-primary text-base sm:text-lg px-6 py-4">
+                ▶ Começar a Aprender
+              </button>
+              <button type="button" data-go-tab="playground" class="btn-outline-navy text-base sm:text-lg px-6 py-4">
+                💻 Abrir Playground
+              </button>
+            </div>
+
+            <div class="mt-7 flex flex-wrap gap-2" aria-label="Saudações em várias línguas">
+              <span class="hello-chip bg-sol-soft">Olá 🇧🇷</span>
+              <span class="hello-chip bg-menta-soft">Hola 🇻🇪</span>
+              <span class="hello-chip bg-salmao-soft">Bonjou 🇭🇹</span>
+              <span class="hello-chip bg-lavanda-soft">Bonjour 🇫🇷</span>
+              <span class="hello-chip bg-ceu-soft">Hello 🌎</span>
+            </div>
+          </div>
+
+          <!-- Prévia Visual no estilo dos slides -->
+          <div class="lg:col-span-5">
+            <div class="rounded-3xl bg-navy p-5 sm:p-6 shadow-lift text-white flex flex-col gap-4">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold uppercase tracking-[0.16em] text-sol">Python no navegador 🐍</span>
+                <span class="text-xs font-mono text-menta bg-white/10 px-2.5 py-1 rounded-full">100% interativo</span>
+              </div>
+
+              <div class="code-block">
+                <div class="code-block-head">
+                  <span class="dot bg-coral"></span>
+                  <span class="dot bg-sol"></span>
+                  <span class="dot bg-menta"></span>
+                  <span class="ml-2 font-mono text-xs text-slate-400">main.py</span>
+                </div>
+                <pre><code><span class="tok-var">nome</span> <span class="tok-op">=</span> <span class="tok-bi">input</span><span class="tok-punc">(</span><span class="tok-str">"Qual é o seu nome? "</span><span class="tok-punc">)</span>
+<span class="tok-bi">print</span><span class="tok-punc">(</span><span class="tok-str">"Bem-vindo(a),"</span><span class="tok-punc">,</span> <span class="tok-var">nome</span><span class="tok-punc">)</span></code></pre>
+              </div>
+
+              <div class="rounded-2xl bg-creme text-navy p-4 font-mono text-sm">
+                <div class="text-xs font-sans font-extrabold uppercase tracking-wider text-navy/55 mb-1">➡️ Saída no Console</div>
+                <div>Qual é o seu nome? <span class="bg-sol-soft text-amber-900 px-1.5 py-0.5 rounded font-bold">Ana</span></div>
+                <div class="font-bold mt-0.5">Bem-vindo(a), Ana</div>
+              </div>
+
+              <button type="button"
+                data-try-code="nome%20%3D%20input(%22Qual%20%C3%A9%20o%20seu%20nome%3F%20%22)%0Aprint(%22Bem-vindo(a)%2C%22%2C%20nome)"
+                data-try-title="Boas-vindas com input()"
+                class="w-full py-3 px-4 rounded-xl bg-sol text-navy-950 font-display font-extrabold text-sm hover:bg-amber-300 transition flex items-center justify-center gap-2">
+                ▶ Rodar este exemplo no Playground
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Seção: A Ideia por Trás da Plataforma -->
+      <div class="mt-14 sm:mt-20">
+        <div class="max-w-3xl">
+          <span class="eyebrow">Propósito</span>
+          <h2 class="font-display font-extrabold text-2xl sm:text-4xl tracking-tight mt-2 text-navy">
+            Por que esta plataforma existe?
+          </h2>
+          <div class="mt-4 space-y-4 text-base sm:text-lg text-navy/75 leading-relaxed">
+            <p>
+              Quando você começa a dar os primeiros passos na programação, o maior obstáculo muitas vezes não é a lógica — é a barreira técnica e o excesso de termos difíceis. Configurar ambientes, instalar programas pesados e lidar com telas cheias de opções pode desanimar quem está começando.
+            </p>
+            <p>
+              Esta plataforma nasceu com um propósito simples: ser o caminho mais direto entre a curiosidade e a primeira linha de código funcionando. Aqui, cada conceito é explicado em cards visuais diretos ao ponto, acompanhados de um glossário traduzido para a vida real e um espaço de prática imediata. Hoje começamos com Python, mas a estrutura foi pensada para crescer e abraçar novas linguagens no futuro.
+            </p>
+          </div>
+        </div>
+
+        <!-- 3 Cards de Pilares (lado a lado) -->
+        <div class="mt-8 grid gap-6 md:grid-cols-3">
+          <article class="rounded-3xl bg-white border border-navy/10 p-6 sm:p-7 shadow-soft hover:shadow-lift transition flex flex-col gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-sol-soft border border-amber-300/70 grid place-items-center text-3xl" aria-hidden="true">📘</div>
+            <div>
+              <h3 class="font-display font-extrabold text-xl text-navy">Trilha Visual</h3>
+              <p class="mt-2 text-navy/75 leading-relaxed">
+                Aulas organizadas em blocos curtos e diretos, inspirados em materiais reais de sala de aula.
+              </p>
+            </div>
+            <button type="button" data-go-tab="aulas" class="mt-auto text-sm font-extrabold text-navy hover:underline inline-flex items-center gap-1">
+              Acessar Trilha de Aulas →
+            </button>
+          </article>
+
+          <article class="rounded-3xl bg-white border border-navy/10 p-6 sm:p-7 shadow-soft hover:shadow-lift transition flex flex-col gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-menta-soft border border-teal-300/70 grid place-items-center text-3xl" aria-hidden="true">📖</div>
+            <div>
+              <h3 class="font-display font-extrabold text-xl text-navy">Glossário Sem Mistério</h3>
+              <p class="mt-2 text-navy/75 leading-relaxed">
+                O que é variável, lista ou loop? Explicações simples para você nunca travar no vocabulário.
+              </p>
+            </div>
+            <button type="button" data-go-tab="glossario" class="mt-auto text-sm font-extrabold text-navy hover:underline inline-flex items-center gap-1">
+              Consultar Glossário →
+            </button>
+          </article>
+
+          <article class="rounded-3xl bg-white border border-navy/10 p-6 sm:p-7 shadow-soft hover:shadow-lift transition flex flex-col gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-lavanda-soft border border-indigo-300/70 grid place-items-center text-3xl" aria-hidden="true">💻</div>
+            <div>
+              <h3 class="font-display font-extrabold text-xl text-navy">Prática Instantânea</h3>
+              <p class="mt-2 text-navy/75 leading-relaxed">
+                Escreva seu código e veja o resultado acontecer na tela na mesma hora, inclusive usando comandos de entrada (<code class="font-mono font-bold text-navy">input</code>).
+              </p>
+            </div>
+            <button type="button" data-go-tab="playground" class="mt-auto text-sm font-extrabold text-navy hover:underline inline-flex items-center gap-1">
+              Ir para o Playground →
+            </button>
+          </article>
+        </div>
+      </div>
+
+      <!-- 3. Seção: Sobre Mim e a Origem do Projeto -->
+      <div class="mt-14 sm:mt-20 rounded-3xl bg-white border border-navy/10 p-6 sm:p-10 lg:p-12 shadow-soft">
+        <div class="grid gap-8 lg:grid-cols-12 items-center">
+          <div class="lg:col-span-8">
+            <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-menta-soft border border-teal-300/70 text-teal-950 font-extrabold text-xs uppercase tracking-wider">
+              👋 Quem está por trás
+            </span>
+            <h2 class="font-display font-extrabold text-2xl sm:text-4xl tracking-tight mt-3 text-navy">
+              De uma sala de aula voluntária para a web
+            </h2>
+            <div class="mt-4 space-y-4 text-base sm:text-lg text-navy/80 leading-relaxed">
+              <p>
+                Olá! Eu sou <strong class="text-navy">Lucas Rafael Kammer</strong>, estudante de Engenharia de Software e entusiasta de tecnologia aqui em <strong class="text-navy">Jaraguá do Sul (SC)</strong>.
+              </p>
+              <p>
+                A faísca para construir esta plataforma surgiu durante a minha participação como voluntário no projeto <strong class="text-navy">"Tecnologia para Todos"</strong> (iniciativa da Católica SC), onde tive a oportunidade de ensinar os fundamentos de Python para pessoas migrantes da nossa cidade.
+              </p>
+              <p>
+                Preparando os slides e acompanhando os alunos na prática, percebi o quanto um material visual, acolhedor e livre de barreiras técnicas faz diferença na hora de aprender. Decidi então desenvolver esta plataforma como um projeto pessoal em paralelo — transformando aquela experiência de sala de aula em uma ferramenta aberta que meus alunos (e qualquer outro iniciante) possam acessar de casa, revisar o conteúdo e praticar à vontade.
+              </p>
+            </div>
+          </div>
+
+          <div class="lg:col-span-4">
+            <div class="rounded-3xl bg-creme border border-navy/10 p-6 flex flex-col gap-4">
+              <div class="flex items-center gap-3.5">
+                <div class="w-14 h-14 rounded-2xl bg-navy text-sol font-display font-extrabold text-xl grid place-items-center shadow-soft">
+                  LK
+                </div>
+                <div>
+                  <div class="font-display font-extrabold text-lg text-navy">Lucas Rafael Kammer</div>
+                  <div class="text-sm font-semibold text-navy/60">Engenharia de Software · Jaraguá do Sul, SC</div>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2.5 pt-2 text-xs font-bold">
+                <div class="bg-sol-soft text-amber-950 rounded-xl p-3">🐍 Ensino descomplicado</div>
+                <div class="bg-menta-soft text-teal-950 rounded-xl p-3">🌍 Aberto para todos</div>
+                <div class="bg-salmao-soft text-rose-950 rounded-xl p-3">⚡ Direto no navegador</div>
+                <div class="bg-lavanda-soft text-indigo-950 rounded-xl p-3">💬 Apoio multilíngue</div>
+              </div>
+              <button type="button" data-go-tab="melhorias" class="btn-soft w-full text-sm mt-1">
+                💡 Deixar uma sugestão ou relatar bug
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Chamada Final (Rodapé da Home) -->
+      <div class="mt-14 sm:mt-20 rounded-3xl bg-navy text-white p-8 sm:p-12 shadow-lift text-center">
+        <h3 class="font-display font-extrabold text-2xl sm:text-4xl tracking-tight">
+          Pronto para escrever seu primeiro <code class="font-mono text-sol">print(<span class="text-menta">"Olá, mundo!"</span>)</code>?
+        </h3>
+        <p class="mt-3 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto">
+          Escolha uma aula na trilha ou abra o editor interativo para testar suas ideias agora mesmo.
+        </p>
+        <div class="mt-7 flex flex-wrap justify-center gap-3.5">
+          <button type="button" data-go-tab="aulas" class="px-7 py-4 rounded-2xl bg-sol text-navy-950 font-display font-extrabold text-base sm:text-lg hover:bg-amber-300 transition shadow-lift">
+            Explorar Trilha de Python →
+          </button>
+          <button type="button" data-go-tab="playground" class="px-6 py-4 rounded-2xl bg-white/10 text-white font-display font-bold text-base sm:text-lg hover:bg-white/20 transition border border-white/15">
+            💻 Abrir Playground
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===================== 📘 TRILHA DE AULAS ===================== -->
+    <section id="view-aulas" role="tabpanel" aria-labelledby="tab-aulas" class="view max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10" hidden>
+      <!-- Boas-vindas -->
+      <div class="mb-8 flex flex-col lg:flex-row lg:items-end gap-6 justify-between">
+        <div>
+          <div class="flex flex-wrap gap-2 mb-4" aria-label="Saudações em várias línguas">
+            <span class="hello-chip bg-sol-soft">Olá 🇧🇷</span>
+            <span class="hello-chip bg-menta-soft">Hola 🇻🇪</span>
+            <span class="hello-chip bg-salmao-soft">Bonjou 🇭🇹</span>
+            <span class="hello-chip bg-lavanda-soft">Bonjour 🇫🇷</span>
+            <span class="hello-chip bg-ceu-soft">Hello 🌎</span>
+          </div>
+          <h1 class="font-display font-extrabold text-3xl sm:text-5xl tracking-tight leading-[1.05]">
+            Aprenda a programar, <br class="hidden sm:block" />um passo de cada vez <span aria-hidden="true">🐍</span>
+          </h1>
+          <p class="mt-3 text-lg text-navy/70 max-w-2xl">
+            Escolha uma aula, leia os cards e clique em <strong class="text-navy">“Testar no Playground”</strong> para experimentar cada exemplo.
+          </p>
+        </div>
+        <div id="lesson-picker" class="flex flex-wrap gap-3" role="group" aria-label="Escolha a aula"></div>
+      </div>
+
+      <!-- Cabeçalho da aula + cards -->
+      <div id="lesson-hero"></div>
+      <div id="lesson-cards" class="grid gap-6 md:grid-cols-2 mt-8"></div>
+      <div id="lesson-nav" class="mt-10 flex flex-wrap justify-between gap-3"></div>
+    </section>
+
+    <!-- ===================== 📖 GLOSSÁRIO ===================== -->
+    <section id="view-glossario" role="tabpanel" aria-labelledby="tab-glossario" class="view max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10" hidden>
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-6">
+        <div>
+          <span class="eyebrow">Dicionário da programação</span>
+          <h1 class="font-display font-extrabold text-3xl sm:text-5xl tracking-tight mt-2">Glossário de Palavras <span aria-hidden="true">📖</span></h1>
+          <p class="mt-3 text-lg text-navy/70 max-w-2xl">Palavras difíceis explicadas de um jeito simples — com tradução para espanhol, inglês e francês.</p>
+        </div>
+        <label class="relative block w-full lg:w-96">
+          <span class="sr-only">Pesquisar no glossário</span>
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xl" aria-hidden="true">🔎</span>
+          <input id="glossary-search" type="search" autocomplete="off" placeholder="Pesquisar: print, lista, repetir…"
+                 class="w-full pl-12 pr-4 py-4 rounded-2xl bg-white border border-navy/10 shadow-soft text-base font-medium placeholder:text-navy/40 focus:outline-none focus:ring-4 focus:ring-sol/40 focus:border-sol" />
+        </label>
+      </div>
+      <div id="glossary-filters" class="flex flex-wrap gap-2 mb-6" role="group" aria-label="Filtrar por categoria"></div>
+      <p id="glossary-count" class="text-sm font-semibold text-navy/50 mb-4" aria-live="polite"></p>
+      <div id="glossary-grid" class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3"></div>
+      <div id="glossary-empty" class="hidden text-center py-16">
+        <div class="text-5xl mb-3" aria-hidden="true">🤔</div>
+        <p class="font-display font-bold text-xl">Nenhuma palavra encontrada</p>
+        <p class="text-navy/60 mt-1">Tente outra palavra, como “lista” ou “repetir”.</p>
+      </div>
+    </section>
+
+    <!-- ===================== 💻 PLAYGROUND ===================== -->
+    <section id="view-playground" role="tabpanel" aria-labelledby="tab-playground" class="view max-w-[1600px] mx-auto px-3 sm:px-6 py-5 sm:py-6" hidden>
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h1 class="font-display font-extrabold text-2xl sm:text-3xl tracking-tight">Playground de Python <span aria-hidden="true">💻</span></h1>
+          <p id="pg-example-label" class="text-sm font-semibold text-navy/55 mt-0.5">Escreva seu código e clique em ▶ Rodar Código.</p>
+        </div>
+        <div class="hidden md:flex items-center gap-2 text-xs font-semibold text-navy/55">
+          <kbd class="kbd">Ctrl</kbd> + <kbd class="kbd">Enter</kbd> roda o código
+        </div>
+      </div>
+
+      <div class="pg-grid grid gap-4 lg:grid-cols-2">
+        <!-- Editor -->
+        <div class="pg-panel flex flex-col rounded-2xl overflow-hidden bg-navy-950 shadow-lift ring-1 ring-white/5">
+          <div class="flex flex-wrap items-center gap-2 px-3 py-2.5 bg-[#0D1430] border-b border-white/5">
+            <div class="flex items-center gap-1.5 pl-1 pr-2" aria-hidden="true">
+              <span class="w-3 h-3 rounded-full bg-coral"></span><span class="w-3 h-3 rounded-full bg-sol"></span><span class="w-3 h-3 rounded-full bg-menta"></span>
+            </div>
+            <span class="file-tab"><span class="text-sol">🐍</span> main.py</span>
+            <div class="ml-auto flex items-center gap-2">
+              <button id="pg-font-down" class="pg-icon-btn" title="Diminuir letra" aria-label="Diminuir tamanho da letra">A−</button>
+              <button id="pg-font-up" class="pg-icon-btn" title="Aumentar letra" aria-label="Aumentar tamanho da letra">A+</button>
+              <button id="pg-clear-code" class="pg-btn-ghost" title="Apagar todo o código do editor">🧹 Limpar</button>
+              <button id="pg-stop" class="pg-btn-stop hidden" title="Parar o programa">⏹ Parar</button>
+              <button id="pg-run" class="pg-btn-run" title="Rodar código (Ctrl + Enter)">▶ Rodar Código</button>
+            </div>
+          </div>
+          <div id="pg-editor" class="pg-editor flex-1 relative" aria-label="Editor de código Python">
+            <div id="pg-editor-loading" class="absolute inset-0 grid place-items-center text-slate-400 text-sm font-semibold">
+              <span class="flex items-center gap-3"><span class="spinner"></span> Carregando o editor…</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Console -->
+        <div class="pg-panel flex flex-col rounded-2xl overflow-hidden bg-navy-950 shadow-lift ring-1 ring-white/5">
+          <div class="flex items-center gap-3 px-4 py-2.5 bg-[#0D1430] border-b border-white/5">
+            <span class="font-mono text-sm font-semibold text-slate-200 flex items-center gap-2"><span class="text-menta" aria-hidden="true">❯_</span> Console</span>
+            <span id="pg-status" class="status-pill status-loading" role="status" aria-live="polite">
+              <span class="status-dot"></span><span id="pg-status-text">Python ainda não carregado</span>
+            </span>
+            <button id="pg-clear-console" class="pg-btn-ghost ml-auto" title="Limpar o console">🧽 Limpar console</button>
+          </div>
+          <div id="pg-console" class="console flex-1" tabindex="0" aria-label="Saída do programa" aria-live="polite">
+            <div class="console-sys">👋 Olá! As saídas do seu programa aparecem aqui.</div>
+            <div class="console-sys">Quando o programa usar <span class="text-sol">input()</span>, uma caixa vai aparecer aqui para você digitar a resposta.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
+        <div class="tip-chip bg-sol-soft">💡 <span><strong>Ctrl + Enter</strong> roda o código sem usar o mouse.</span></div>
+        <div class="tip-chip bg-menta-soft">⌨️ <span>Quando aparecer a caixa no console, digite e aperte <strong>Enter</strong>.</span></div>
+        <div class="tip-chip bg-salmao-soft">⏹ <span>O programa não para? Clique em <strong>Parar</strong>.</span></div>
+      </div>
+    </section>
+
+    <!-- ===================== 💡 MELHORIAS & BUGS (ISSUES) ===================== -->
+    <section id="view-melhorias" role="tabpanel" aria-labelledby="tab-melhorias" class="view max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10" hidden>
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
+        <div>
+          <span class="eyebrow">Construindo juntos</span>
+          <h1 class="font-display font-extrabold text-3xl sm:text-5xl tracking-tight mt-2">
+            Melhorias &amp; Bugs <span aria-hidden="true">💡</span>
+          </h1>
+          <p class="mt-3 text-lg text-navy/70 max-w-2xl">
+            Teve uma ideia de aula, achou algo confuso ou encontrou um erro? Crie uma task abaixo — cada registro ganha um número <strong class="font-mono text-navy">#1, #2, #3…</strong> para acompanharmos a evolução da plataforma.
+          </p>
+        </div>
+
+        <!-- Placar rápido -->
+        <div id="issues-stats" class="flex flex-wrap gap-2.5"></div>
+      </div>
+
+      <div class="grid gap-8 lg:grid-cols-12 items-start">
+        <!-- Formulário simples de nova issue -->
+        <form id="issue-form" class="lg:col-span-5 rounded-3xl bg-white border border-navy/10 p-6 sm:p-7 shadow-soft flex flex-col gap-4 lg:sticky lg:top-24">
+          <div class="flex items-center justify-between">
+            <h2 class="font-display font-extrabold text-xl text-navy">Nova sugestão ou bug</h2>
+            <span id="issue-next-number" class="font-mono font-extrabold text-sm px-3 py-1 rounded-full bg-navy text-sol">#1</span>
+          </div>
+
+          <!-- Tipo -->
+          <fieldset>
+            <legend class="block text-xs font-extrabold uppercase tracking-wider text-navy/60 mb-2">O que você quer registrar?</legend>
+            <div class="grid grid-cols-3 gap-2">
+              <label class="issue-type-option">
+                <input type="radio" name="issue-type" value="melhoria" class="sr-only" checked />
+                <span class="issue-type-pill">💡 Melhoria</span>
+              </label>
+              <label class="issue-type-option">
+                <input type="radio" name="issue-type" value="bug" class="sr-only" />
+                <span class="issue-type-pill">🐞 Bug / Erro</span>
+              </label>
+              <label class="issue-type-option">
+                <input type="radio" name="issue-type" value="conteudo" class="sr-only" />
+                <span class="issue-type-pill">📘 Nova Aula</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <!-- Onde -->
+          <div class="grid sm:grid-cols-2 gap-3">
+            <label class="block">
+              <span class="block text-xs font-extrabold uppercase tracking-wider text-navy/60 mb-1.5">Onde?</span>
+              <select id="issue-area" class="w-full px-3.5 py-2.5 rounded-xl bg-creme border border-navy/10 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-sol">
+                <option value="Geral">🏠 Geral / Página Inicial</option>
+                <option value="Aula 1">📘 Aula 1 (Primeiros Passos)</option>
+                <option value="Aula 2">📘 Aula 2 (Listas e Repetições)</option>
+                <option value="Glossário">📖 Glossário</option>
+                <option value="Playground">💻 Playground / Console</option>
+              </select>
+            </label>
+
+            <label class="block">
+              <span class="block text-xs font-extrabold uppercase tracking-wider text-navy/60 mb-1.5">Seu nome (opcional)</span>
+              <input id="issue-author" type="text" maxlength="50" placeholder="Ex.: Maria, Anônimo…"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-creme border border-navy/10 font-medium text-sm placeholder:text-navy/40 focus:outline-none focus:ring-2 focus:ring-sol" />
+            </label>
+          </div>
+
+          <!-- Título -->
+          <label class="block">
+            <span class="block text-xs font-extrabold uppercase tracking-wider text-navy/60 mb-1.5">Título curto *</span>
+            <input id="issue-title" type="text" required maxlength="100"
+              placeholder="Ex.: Adicionar mais exercícios de while"
+              class="w-full px-4 py-3 rounded-xl bg-creme border border-navy/10 font-semibold text-base placeholder:text-navy/40 focus:outline-none focus:ring-2 focus:ring-sol" />
+          </label>
+
+          <!-- Descrição -->
+          <label class="block">
+            <span class="block text-xs font-extrabold uppercase tracking-wider text-navy/60 mb-1.5">Explicação simples *</span>
+            <textarea id="issue-desc" rows="4" required maxlength="1000"
+              placeholder="Conte com suas palavras: o que aconteceu ou como podemos melhorar?"
+              class="w-full px-4 py-3 rounded-xl bg-creme border border-navy/10 font-medium text-sm leading-relaxed placeholder:text-navy/40 focus:outline-none focus:ring-2 focus:ring-sol"></textarea>
+          </label>
+
+          <button type="submit" class="btn-primary w-full py-3.5 text-base">
+            ➕ Criar Task <span id="issue-submit-num" class="font-mono text-sol">#1</span>
+          </button>
+
+          <p class="text-xs text-navy/55 leading-relaxed">
+            💾 As tasks ficam salvas neste navegador e você também pode copiar ou exportar todas com 1 clique.
+          </p>
+        </form>
+
+        <!-- Lista de Issues (#1, #2, #3...) -->
+        <div class="lg:col-span-7 flex flex-col gap-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-navy/10 shadow-soft">
+            <div id="issues-filter-bar" class="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar tasks"></div>
+            <div class="flex items-center gap-2 ml-auto">
+              <button type="button" id="issues-copy-md" class="btn-soft text-xs py-2 px-3" title="Copiar lista em formato Markdown (para colar no GitHub)">
+                📋 Copiar lista (.md)
+              </button>
+            </div>
+          </div>
+
+          <div id="issues-list" class="flex flex-col gap-3.5"></div>
+
+          <div id="issues-empty" class="hidden rounded-3xl bg-white border border-navy/10 p-12 text-center shadow-soft">
+            <div class="text-4xl mb-2" aria-hidden="true">✨</div>
+            <p class="font-display font-bold text-lg text-navy">Nenhuma task neste filtro</p>
+            <p class="text-sm text-navy/60 mt-1">Use o formulário ao lado para criar a próxima task numerada.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-navy/5 mt-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row gap-2 justify-between text-sm text-navy/55">
+      <p>Desenvolvido por <strong class="text-navy/80">Lucas Rafael Kammer</strong> · <strong class="text-navy/75">Tecnologia para Todos</strong> · Jaraguá do Sul (SC)</p>
+      <p>Python roda 100% no seu navegador (Pyodide + WebAssembly).</p>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Dados (scripts clássicos: funciona no GitHub Pages e também abrindo o arquivo direto) -->
+  <script src="data/lessons.js"></script>
+  <script src="data/glossary.js"></script>
+  <!-- Lógica -->
+  <script src="js/highlight.js"></script>
+  <script src="js/pyodide-worker.js"></script>
+  <script src="js/playground.js"></script>
+  <script src="js/issues.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
