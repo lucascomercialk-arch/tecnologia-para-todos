@@ -50,6 +50,7 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
     els.statusText = document.getElementById('pg-status-text');
     els.runBtn = document.getElementById('pg-run');
     els.stopBtn = document.getElementById('pg-stop');
+    els.downloadCodeBtn = document.getElementById('pg-download-code');
     els.clearCodeBtn = document.getElementById('pg-clear-code');
     els.clearConsoleBtn = document.getElementById('pg-clear-console');
     els.fontUpBtn = document.getElementById('pg-font-up');
@@ -323,6 +324,30 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
     if (monacoEditor) monacoEditor.updateOptions({ fontSize });
     if (fallbackTextarea) fallbackTextarea.style.fontSize = fontSize + 'px';
     if (els.console) els.console.style.fontSize = Math.max(13, fontSize - 1) + 'px';
+  }
+
+  async function downloadCode() {
+    await ensureEditor();
+    const code = getCode();
+    const filename = 'meu_programa.py';
+    const blob = new Blob([code], { type: 'text/x-python;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    if (els.exampleLabel) {
+      els.exampleLabel.textContent = `💾 Arquivo "${filename}" baixado com o código atual do editor!`;
+    }
+    if (typeof TPT.showToast === 'function') {
+      TPT.showToast(`💾 Código baixado como ${filename}!`);
+    }
   }
 
   /* =========================================================
@@ -687,6 +712,9 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
 
     els.runBtn.addEventListener('click', runCode);
     els.stopBtn.addEventListener('click', stopCode);
+    if (els.downloadCodeBtn) {
+      els.downloadCodeBtn.addEventListener('click', downloadCode);
+    }
     els.clearConsoleBtn.addEventListener('click', () => {
       clearConsole();
       appendSystem('Console limpo. Clique em ▶ Rodar Código para executar novamente.');
@@ -724,5 +752,5 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
     }, 50);
   }
 
-  TPT.playground = { init, onActivate, setCode, runCode, stopCode, ensureWorker };
+  TPT.playground = { init, onActivate, setCode, getCode, downloadCode, runCode, stopCode, ensureWorker };
 })();

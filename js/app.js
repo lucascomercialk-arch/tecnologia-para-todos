@@ -39,6 +39,7 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
   }
+  TPT.showToast = showToast;
 
   /* ---------- Cores pastéis dos badges e cards (estilo slides) ---------- */
   const COLOR_MAP = {

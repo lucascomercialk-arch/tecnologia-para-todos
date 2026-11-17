@@ -34,7 +34,7 @@
       title: 'Botão para baixar o código escrito como arquivo .py',
       desc: 'Permitir que o aluno salve o programa que escreveu no Playground direto no computador ou celular como meu_programa.py.',
       author: 'Comunidade',
-      status: 'open',
+      status: 'done',
       votes: 2,
       createdAt: 'Hoje',
     },
