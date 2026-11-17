@@ -1,108 +1,62 @@
-# 🐍 Tecnologia para Todos
+# 💻 Tecnologia para Todos — Plataforma Interativa de Ensino
 
-> 🚀 **Projeto Educacional Aberto • Feito para Iniciantes**  
-> Aprenda programação do zero, sem complicação e direto no navegador.
+> **Aprenda programação do zero, sem complicação e direto no navegador.**
 
-Aplicação web estática, gratuita e 100% client-side criada por **Lucas Rafael Kammer** (Jaraguá do Sul — SC), inspirada na experiência em sala de aula no projeto voluntário *Tecnologia para Todos* (Católica SC). Pronta para publicação gratuita no **GitHub Pages**.
+🔗 **Acesse a plataforma online:** [lucascomercialk-arch.github.io/tecnologia-para-todos](https://lucascomercialk-arch.github.io/tecnologia-para-todos/#inicio)
 
----
-
-## ✨ O que a aplicação tem
-
-1. **🏠 Página Inicial (Home)**
-   - **Hero Section:** apresentação de impacto com prévia interativa de código e botões para a Trilha de Aulas e para o Playground.
-   - **Por que esta plataforma existe?** + 3 Cards de Pilares (*Trilha Visual*, *Glossário Sem Mistério* e *Prática Instantânea*).
-   - **Quem está por trás:** história de origem do projeto.
-   - **Chamada final** para começar a programar.
-2. **📘 Trilha de Aulas (Cards Didáticos)**
-   - **Aula 1 — Primeiros Passos:** `print()`, comentários `#`, variáveis (`str`, `int`, `float`), `input()`, conversão com `int()`/`float()`, decisões (`if`, `elif`, `else`, `and`, `or`), Desafio 1 e Mini Projeto **Conversor de Moeda**.
-   - **Aula 2 — Listas e Repetições:** listas `[ ]`, índices `[0]` e `[-1]`, `append()`, `remove()`, `len()`, `in`, laços `for` + `range()`, `while`, Desafio 2 e Mini Projeto **Lista de Compras** (versão passo a passo e versão turbo com menu interativo).
-   - Cada card traz **bloco de código azul-marinho (`#0A0F24`)** com sintaxe destacada, **saída esperada**, **dica curta** e o botão **"▶ Testar no Playground"**.
-3. **📖 Glossário de Palavras**
-   - Busca instantânea e filtro por categoria (`Comandos`, `Variáveis`, `Decisões`, `Listas`, `Repetição`, `Geral`).
-   - Explicação em português simples + tradução rápida dos termos em **espanhol 🇪🇸, inglês 🇬🇧 e francês 🇫🇷**.
-4. **💻 Playground de Python (Split-Screen)**
-   - **Esquerda:** **Monaco Editor** (o mesmo motor do VS Code) com tema escuro azul-marinho, numeração de linhas, ajuste de tamanho da fonte (`A−` / `A+`) e atalho `Ctrl + Enter`.
-   - **Direita:** **Console interativo** executando Python real via **Pyodide (WebAssembly)** dentro de um *Web Worker*.
-   - **Suporte nativo a `input()` sem travar a tela:** chamadas `input()` abrem uma caixa de texto diretamente dentro do Console para o aluno digitar em tempo real, e o botão **⏹ Parar** interrompe loops infinitos na hora.
-   - **Erros traduzidos:** `SyntaxError`, `IndentationError`, `NameError`, `TypeError`, `ValueError`, `IndexError` e `ZeroDivisionError` são explicados em português acessível com dica de como corrigir.
-5. **💡 Melhorias & Bugs (Issues numeradas `#1`, `#2`, `#3`…)**
-   - Qualquer pessoa pode registrar uma sugestão de melhoria, nova aula ou relatar um bug de forma simples.
-   - Cada task criada recebe automaticamente um número sequencial (`#1`, `#2`, `#3`…), pode receber apoios (`👍`), ser filtrada por status/tipo, marcada como resolvida e copiada em **Markdown (`.md`)** com 1 clique.
+Uma plataforma educacional gratuita, aberta e sem atritos técnicos, criada para tornar o ensino de lógica e programação acessível para iniciantes — sem a necessidade de instalar editores pesados, configurar ambientes ou lidar com telas complexas.
 
 ---
 
-## 📁 Estrutura de Arquivos
+## 💡 A História e Motivação
 
-```text
-tecnologia-para-todos/
-├── index.html              # Estrutura principal e configuração do Design System (Tailwind CDN)
-├── css/
-│   └── styles.css          # Tema dos blocos de código, console, input inline e animações
-├── data/
-│   ├── lessons.js          # Conteúdo completo das Aulas 1 e 2
-│   └── glossary.js         # Termos do Glossário com exemplos e traduções
-├── js/
-│   ├── highlight.js        # Realce de sintaxe Python para os cards e tema do Monaco
-│   ├── pyodide-worker.js   # Web Worker com Pyodide + suporte assíncrono a input()
-│   ├── playground.js       # Integração Monaco Editor + Console + tradutor de erros
-│   └── app.js              # Navegação por abas, renderização das aulas e busca do glossário
-├── .nojekyll               # Garante que o GitHub Pages sirva todos os arquivos sem processamento Jekyll
-└── README.md               # Este guia
-```
+Este é um **projeto pessoal desenvolvido em paralelo** por mim, **Lucas Rafael Kammer**, mas que nasceu de uma experiência real em sala de aula.
+
+Durante a minha atuação como voluntário no projeto **"Tecnologia para Todos"** (iniciativa da Católica SC em Jaraguá do Sul), tive a oportunidade de ministrar aulas de **Python básico** para pessoas migrantes da nossa cidade. Preparando os materiais e acompanhando os alunos na prática, percebi duas grandes barreiras para quem está começando:
+1. O excesso de termos técnicos em inglês sem tradução conceitual clara.
+2. A dificuldade de configurar ambientes de desenvolvimento (VS Code, interpretadores, terminal) antes mesmo de entender o que é uma variável ou um laço de repetição.
+
+A partir dessa vivência, decidi construir esta plataforma web: um espaço visual, acolhedor e interativo onde os alunos (e qualquer pessoa curiosa por tecnologia) possam revisar os conteúdos das aulas, consultar um glossário simplificado e executar códigos reais direto do navegador.
 
 ---
 
-## 🚀 Como publicar gratuitamente no GitHub Pages
+## ✨ Funcionalidades Principais
 
-### Opção 1 — Pelo site do GitHub (sem instalar nada)
-
-1. Crie uma conta (ou entre) em [github.com](https://github.com).
-2. Clique no botão **`+`** (canto superior direito) → **New repository**.
-3. Em **Repository name**, digite `tecnologia-para-todos`.
-4. Marque **Public** e clique em **Create repository**.
-5. Na página criada, clique em **uploading an existing file** e arraste todos os arquivos e pastas deste projeto (`index.html`, `css/`, `data/`, `js/`, `README.md`, `.nojekyll`).
-6. Clique em **Commit changes**.
-7. No topo do repositório, abra **Settings** → no menu lateral esquerdo clique em **Pages**.
-8. Em **Build and deployment → Source**, deixe **Deploy from a branch**.
-9. Em **Branch**, selecione **`main`** e a pasta **`/ (root)`** → clique em **Save**.
-10. Aguarde cerca de 1 minuto e recarregue a página: o link do seu site estará no topo, no formato:
-    ```text
-    https://SEU-USUARIO.github.io/tecnologia-para-todos/
-    ```
-
-### Opção 2 — Pelo terminal com Git
-
-```bash
-cd tecnologia-para-todos
-git init
-git branch -M main
-git add .
-git commit -m "Primeira versão - Tecnologia para Todos"
-git remote add origin https://github.com/SEU-USUARIO/tecnologia-para-todos.git
-git push -u origin main
-```
-
-Depois, ative o GitHub Pages em **Settings → Pages → Branch: `main` / `(root)`**.
+* **🏠 Início & Propósito:** Apresentação da iniciativa, da motivação educacional e da proposta aberta da plataforma.
+* **📘 Trilha de Aulas (Cards Didáticos):** Conteúdos divididos em blocos curtos e visuais (inspirados nos slides reais das aulas), com exemplos práticos e botão rápido para testar o código na hora.
+* **📖 Glossário de Palavras:** Dicionário descomplicado que traduz termos como `print()`, `variável`, `input()`, `lista`, `for` e `while` para a linguagem do dia a dia.
+* **⚡ Playground Interativo (Estilo VS Code):**
+  * Editor de código completo no navegador com destaque de sintaxe e numeração de linhas (**Monaco Editor**).
+  * Execução real de Python 100% no navegador via WebAssembly (**Pyodide**), dispensando servidores backend.
+  * **Suporte interativo a `input()`:** Permite que o aluno digite respostas diretamente no console da página, possibilitando exercícios dinâmicos (como listas de compras, calculadoras e jogos de adivinhação).
 
 ---
 
-## 💻 Como rodar no seu computador
+## 🛠️ Tecnologias Utilizadas
 
-Como os scripts são carregados de forma clássica (sem exigir empacotador), você pode:
-
-- **Abrir direto:** dar dois cliques no arquivo `index.html`; ou
-- **Usar um servidor local** (recomendado):
-  ```bash
-  python -m http.server 8000
-  ```
-  e acessar `http://localhost:8000` no navegador.
-
-> **Nota:** É necessário estar conectado à internet na primeira abertura para baixar as fontes, o Tailwind CSS, o Monaco Editor e o Pyodide via CDN.
+* **Frontend:** HTML5, Tailwind CSS e JavaScript (Vanilla Modular)
+* **Editor de Código:** [Monaco Editor](https://microsoft.github.io/monaco-editor/)
+* **Interpretador Python Client-Side:** [Pyodide (WebAssembly)](https://pyodide.org/)
+* **Hospedagem:** GitHub Pages
 
 ---
 
-## ✏️ Como adicionar a Aula 3 (ou novos termos no Glossário)
+## 🗺️ Próximos Passos (Roadmap)
 
-- **Nova aula:** abra `data/lessons.js` e adicione um novo objeto ao array `window.TPT_LESSONS`. O seletor de aulas e a navegação "Próxima aula" aparecem automaticamente.
-- **Nova palavra no glossário:** abra `data/glossary.js` e adicione um item ao array `window.TPT_GLOSSARY`.
+- [x] Estrutura base com identidade visual acolhedora e acessível
+- [x] Playground Python integrado com suporte a `input()`
+- [x] Conteúdos iniciais: Aula 1 (Fundamentos) e Aula 2 (Listas e Repetições)
+- [ ] Expansão da trilha de Python (Funções e Dicionários)
+- [ ] Suporte modular para novas linguagens (HTML/CSS e JavaScript)
+- [ ] Modo bilíngue/multilíngue para auxiliar ainda mais estudantes migrantes
+
+---
+
+## 👨‍💻 Autor
+
+Desenvolvido com propósito por **Lucas Rafael Kammer**  
+Estudante de Desenvolvimento de Software • Jaraguá do Sul, SC
+
+---
+
+*Projeto aberto para fins educacionais. Acesse [lucascomercialk-arch.github.io/tecnologia-para-todos](https://lucascomercialk-arch.github.io/tecnologia-para-todos/#inicio), explore e compartilhe com quem está dando os primeiros passos na programação!*
