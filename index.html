@@ -360,12 +360,13 @@
               <span class="w-3 h-3 rounded-full bg-coral"></span><span class="w-3 h-3 rounded-full bg-sol"></span><span class="w-3 h-3 rounded-full bg-menta"></span>
             </div>
             <span class="file-tab"><span class="text-sol">🐍</span> main.py</span>
-            <div class="ml-auto flex items-center gap-2">
-              <button id="pg-font-down" class="pg-icon-btn" title="Diminuir letra" aria-label="Diminuir tamanho da letra">A−</button>
-              <button id="pg-font-up" class="pg-icon-btn" title="Aumentar letra" aria-label="Aumentar tamanho da letra">A+</button>
-              <button id="pg-clear-code" class="pg-btn-ghost" title="Apagar todo o código do editor">🧹 Limpar</button>
-              <button id="pg-stop" class="pg-btn-stop hidden" title="Parar o programa">⏹ Parar</button>
-              <button id="pg-run" class="pg-btn-run" title="Rodar código (Ctrl + Enter)">▶ Rodar Código</button>
+            <div class="ml-auto flex flex-wrap items-center gap-2">
+              <button type="button" id="pg-font-down" class="pg-icon-btn" title="Diminuir letra" aria-label="Diminuir tamanho da letra">A−</button>
+              <button type="button" id="pg-font-up" class="pg-icon-btn" title="Aumentar letra" aria-label="Aumentar tamanho da letra">A+</button>
+              <button type="button" id="pg-download-code" class="pg-btn-ghost" title="Baixar código como meu_programa.py" aria-label="Baixar código como arquivo meu_programa.py">💾 Baixar .py</button>
+              <button type="button" id="pg-clear-code" class="pg-btn-ghost" title="Apagar todo o código do editor">🧹 Limpar</button>
+              <button type="button" id="pg-stop" class="pg-btn-stop hidden" title="Parar o programa">⏹ Parar</button>
+              <button type="button" id="pg-run" class="pg-btn-run" title="Rodar código (Ctrl + Enter)">▶ Rodar Código</button>
             </div>
           </div>
           <div id="pg-editor" class="pg-editor flex-1 relative" aria-label="Editor de código Python">
