@@ -99,6 +99,8 @@
 
     if (target === 'playground' && TPT.playground) {
       TPT.playground.onActivate();
+    } else if (target === 'melhorias' && TPT.issues && TPT.issues.onActivate) {
+      TPT.issues.onActivate();
     }
 
     if (!options.keepScroll) {

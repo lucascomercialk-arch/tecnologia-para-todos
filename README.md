@@ -29,6 +29,7 @@ A partir dessa vivência, decidi construir esta plataforma web: um espaço visua
   * Editor de código completo no navegador com destaque de sintaxe e numeração de linhas (**Monaco Editor**).
   * Execução real de Python 100% no navegador via WebAssembly (**Pyodide**), dispensando servidores backend.
   * **Suporte interativo a `input()`:** Permite que o aluno digite respostas diretamente no console da página, possibilitando exercícios dinâmicos (como listas de compras, calculadoras e jogos de adivinhação).
+* **💡 Melhorias & Bugs (Tasks sincronizadas):** Aba para alunos e visitantes enviarem sugestões ou relatarem bugs com fila offline (`localStorage`), cache de leitura e integração com um backend leve em FastAPI + SQLite (`tpt-tasks-api/`) que abre automaticamente Issues no GitHub.
 
 ---
 
@@ -37,6 +38,7 @@ A partir dessa vivência, decidi construir esta plataforma web: um espaço visua
 * **Frontend:** HTML5, Tailwind CSS e JavaScript (Vanilla Modular)
 * **Editor de Código:** [Monaco Editor](https://microsoft.github.io/monaco-editor/)
 * **Interpretador Python Client-Side:** [Pyodide (WebAssembly)](https://pyodide.org/)
+* **Backend opcional de Tasks (`tpt-tasks-api/`):** Python 3, FastAPI, Uvicorn, SQLite (`WAL`) e integração com GitHub Issues — veja [tpt-tasks-api/README.md](tpt-tasks-api/README.md) para deploy no servidor Linux.
 * **Hospedagem:** GitHub Pages
 
 ---
