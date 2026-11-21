@@ -14,27 +14,55 @@
   const TPT = (window.TPT = window.TPT || {});
   const tasksApi = TPT.tasksApi;
 
-  const MODULE_META = {
-    melhorias: { label: '💡 Melhoria', cls: 'badge bg-sol-soft text-amber-950 border border-amber-300/70' },
-    bug: { label: '🐞 Bug', cls: 'badge bg-coral-soft text-red-950 border border-red-300/70' },
-    python: { label: '🐍 Python', cls: 'badge bg-ceu-soft text-sky-950 border border-sky-300/70' },
-    html: { label: '🌐 HTML/CSS', cls: 'badge bg-lavanda-soft text-indigo-950 border border-indigo-300/70' },
-    geral: { label: '🏠 Geral', cls: 'badge bg-creme text-navy/80 border border-navy/10' },
-    glossario: { label: '📖 Glossário', cls: 'badge bg-menta-soft text-teal-950 border border-teal-300/70' },
-    playground: { label: '💻 Playground', cls: 'badge bg-ceu-soft text-sky-950 border border-sky-300/70' },
+  function t(key, vars) {
+    return TPT.i18n && typeof TPT.i18n.t === 'function' ? TPT.i18n.t(key, vars) : key;
+  }
+
+  function getLocaleTag() {
+    const lang = TPT.i18n && typeof TPT.i18n.getLang === 'function' ? TPT.i18n.getLang() : 'pt';
+    if (lang === 'es') return 'es-ES';
+    if (lang === 'en') return 'en-US';
+    return 'pt-BR';
+  }
+
+  const MODULE_CLASS_MAP = {
+    melhorias: { key: 'issues.modules.melhorias', cls: 'badge bg-sol-soft text-amber-950 border border-amber-300/70' },
+    bug: { key: 'issues.modules.bugShort', cls: 'badge bg-coral-soft text-red-950 border border-red-300/70' },
+    python: { key: 'issues.modules.python', cls: 'badge bg-ceu-soft text-sky-950 border border-sky-300/70' },
+    html: { key: 'issues.modules.html', cls: 'badge bg-lavanda-soft text-indigo-950 border border-indigo-300/70' },
+    geral: { key: 'issues.modules.geralShort', cls: 'badge bg-creme text-navy/80 border border-navy/10' },
+    glossario: { key: 'issues.modules.glossario', cls: 'badge bg-menta-soft text-teal-950 border border-teal-300/70' },
+    playground: { key: 'issues.modules.playground', cls: 'badge bg-ceu-soft text-sky-950 border border-sky-300/70' },
   };
 
-  const PRIORITY_META = {
-    baixa: { label: 'Baixa', cls: 'badge bg-creme text-navy/65 border border-navy/10' },
-    normal: { label: 'Normal', cls: 'badge bg-ceu-soft text-sky-900 border border-sky-200' },
-    alta: { label: '🔥 Alta', cls: 'badge bg-salmao-soft text-rose-950 border border-rose-300/70' },
+  const PRIORITY_CLASS_MAP = {
+    baixa: { key: 'issues.priorityTags.baixa', cls: 'badge bg-creme text-navy/65 border border-navy/10' },
+    normal: { key: 'issues.priorityTags.normal', cls: 'badge bg-ceu-soft text-sky-900 border border-sky-200' },
+    alta: { key: 'issues.priorityTags.alta', cls: 'badge bg-salmao-soft text-rose-950 border border-rose-300/70' },
   };
 
-  const STATUS_META = {
-    pending: { label: '🟡 Pendente', cls: 'badge bg-amber-100/80 text-amber-900' },
-    in_progress: { label: '🔵 Em andamento', cls: 'badge bg-ceu-soft text-sky-950 border border-sky-300/70' },
-    done: { label: '✅ Concluída', cls: 'badge bg-menta-soft text-teal-950 border border-teal-300/70' },
+  const STATUS_CLASS_MAP = {
+    pending: { key: 'issues.statuses.pending', cls: 'badge bg-amber-100/80 text-amber-900' },
+    in_progress: { key: 'issues.statuses.in_progress', cls: 'badge bg-ceu-soft text-sky-950 border border-sky-300/70' },
+    done: { key: 'issues.statuses.done', cls: 'badge bg-menta-soft text-teal-950 border border-teal-300/70' },
   };
+
+  function getModuleMeta(mod) {
+    const info = MODULE_CLASS_MAP[mod];
+    return info
+      ? { label: t(info.key), cls: info.cls }
+      : { label: mod || 'geral', cls: 'badge bg-creme text-navy/80 border border-navy/10' };
+  }
+
+  function getPriorityMeta(prio) {
+    const info = PRIORITY_CLASS_MAP[prio] || PRIORITY_CLASS_MAP.normal;
+    return { label: t(info.key), cls: info.cls };
+  }
+
+  function getStatusMeta(st) {
+    const info = STATUS_CLASS_MAP[st] || STATUS_CLASS_MAP.pending;
+    return { label: t(info.key), cls: info.cls };
+  }
 
   let statusFilter = '';
   let moduleFilter = '';
@@ -90,13 +118,13 @@
   }
 
   function formatShortDate(iso) {
-    if (!iso) return 'Agora';
+    if (!iso) return t('issues.card.now');
     try {
       const d = new Date(iso);
-      if (Number.isNaN(d.getTime())) return 'Agora';
-      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+      if (Number.isNaN(d.getTime())) return t('issues.card.now');
+      return d.toLocaleDateString(getLocaleTag(), { day: '2-digit', month: 'short' });
     } catch (_) {
-      return 'Agora';
+      return t('issues.card.now');
     }
   }
 
@@ -139,19 +167,19 @@
     if (connPill) {
       clearNode(connPill);
       const dot = createEl('span', { className: 'w-2 h-2 rounded-full' });
-      let labelText = 'API conectada';
+      let labelText = t('issues.conn.online');
       if (isSyncing) {
         connPill.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold bg-ceu-soft text-sky-950 border border-sky-300/70';
         dot.classList.add('bg-sky-500');
-        labelText = 'Sincronizando…';
+        labelText = t('issues.conn.syncing');
       } else if (fromCache) {
         connPill.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold bg-sol-soft text-amber-950 border border-amber-300/70';
         dot.classList.add('bg-amber-500');
-        labelText = pendingCount > 0 ? `Offline (${pendingCount} na fila)` : 'Offline (cache local)';
+        labelText = pendingCount > 0 ? t('issues.conn.offlineQueue', { n: pendingCount }) : t('issues.conn.offlineCache');
       } else {
         connPill.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold bg-menta-soft text-teal-950 border border-teal-300/70';
         dot.classList.add('bg-emerald-500');
-        labelText = pendingCount > 0 ? `API online · ${pendingCount} pendente(s)` : 'API online';
+        labelText = pendingCount > 0 ? t('issues.conn.onlinePending', { n: pendingCount }) : t('issues.conn.online');
       }
       connPill.appendChild(dot);
       connPill.appendChild(document.createTextNode(labelText));
@@ -164,9 +192,9 @@
       !statusFilter && !moduleFilter ? serverTasks : (tasksApi ? tasksApi.getCachedTasks() : serverTasks)
     );
 
-    const openCount = allForCounts.filter((t) => t.status !== 'done').length;
-    const progressCount = allForCounts.filter((t) => t.status === 'in_progress').length;
-    const doneCount = allForCounts.filter((t) => t.status === 'done').length;
+    const openCount = allForCounts.filter((tItem) => tItem.status !== 'done').length;
+    const progressCount = allForCounts.filter((tItem) => tItem.status === 'in_progress').length;
+    const doneCount = allForCounts.filter((tItem) => tItem.status === 'done').length;
 
     const navBadge = document.getElementById('issues-nav-badge');
     if (navBadge) navBadge.textContent = String(openCount);
@@ -188,13 +216,16 @@
       return chip;
     };
 
-    statsHost.appendChild(makeStatChip('bg-amber-400', null, `${openCount} ${openCount === 1 ? 'aberta' : 'abertas'}`));
+    const openText = openCount === 1 ? t('issues.stats.openOne') : t('issues.stats.openMany', { n: openCount });
+    const doneText = doneCount === 1 ? t('issues.stats.doneOne') : t('issues.stats.doneMany', { n: doneCount });
+
+    statsHost.appendChild(makeStatChip('bg-amber-400', null, openText));
     if (progressCount > 0) {
-      statsHost.appendChild(makeStatChip('bg-sky-400', null, `${progressCount} em andamento`));
+      statsHost.appendChild(makeStatChip('bg-sky-400', null, t('issues.stats.inProgress', { n: progressCount })));
     }
-    statsHost.appendChild(makeStatChip('bg-emerald-400', null, `${doneCount} ${doneCount === 1 ? 'concluída' : 'concluídas'}`));
+    statsHost.appendChild(makeStatChip('bg-emerald-400', null, doneText));
     if (pendingQueue.length > 0) {
-      statsHost.appendChild(makeStatChip(null, '⏳', `${pendingQueue.length} aguardando sync`));
+      statsHost.appendChild(makeStatChip(null, '⏳', t('issues.stats.waitingSync', { n: pendingQueue.length })));
     }
   }
 
@@ -204,10 +235,10 @@
     clearNode(host);
 
     const filters = [
-      { id: '', label: 'Todas' },
-      { id: 'pending', label: '🟡 Pendentes' },
-      { id: 'in_progress', label: '🔵 Em andamento' },
-      { id: 'done', label: '✅ Concluídas' },
+      { id: '', label: t('issues.statusFilters.all') },
+      { id: 'pending', label: t('issues.statusFilters.pending') },
+      { id: 'in_progress', label: t('issues.statusFilters.in_progress') },
+      { id: 'done', label: t('issues.statusFilters.done') },
     ];
 
     filters.forEach((f) => {
@@ -235,7 +266,7 @@
       type: 'text',
       value: task.title,
       className: 'w-full px-3.5 py-2.5 rounded-xl bg-creme border border-navy/15 font-semibold text-sm text-navy focus:outline-none focus:ring-2 focus:ring-sol',
-      attrs: { required: 'true', minlength: '5', maxlength: '120', placeholder: 'Título (5 a 120 caracteres)' },
+      attrs: { required: 'true', minlength: '5', maxlength: '120', placeholder: t('issues.card.editTitlePlaceholder') },
     });
 
     const row = createEl('div', { className: 'grid sm:grid-cols-2 gap-2.5' });
@@ -245,7 +276,7 @@
     ['melhorias', 'bug', 'python', 'html', 'geral'].forEach((m) => {
       const opt = createEl('option', {
         value: m,
-        text: (MODULE_META[m] && MODULE_META[m].label) || m,
+        text: getModuleMeta(m).label,
       });
       if (task.module === m) opt.selected = true;
       modSelect.appendChild(opt);
@@ -257,7 +288,7 @@
     ['baixa', 'normal', 'alta'].forEach((p) => {
       const opt = createEl('option', {
         value: p,
-        text: `Prioridade: ${(PRIORITY_META[p] && PRIORITY_META[p].label) || p}`,
+        text: t('issues.card.editPriorityPrefix', { label: getPriorityMeta(p).label }),
       });
       if (task.priority === p) opt.selected = true;
       prioSelect.appendChild(opt);
@@ -268,13 +299,13 @@
     const descInput = createEl('textarea', {
       value: task.description || '',
       className: 'w-full px-3.5 py-2.5 rounded-xl bg-creme border border-navy/15 font-medium text-sm text-navy focus:outline-none focus:ring-2 focus:ring-sol',
-      attrs: { rows: '3', maxlength: '1000', placeholder: 'Descrição (opcional; se preencher, use 10 a 1000 caracteres)' },
+      attrs: { rows: '3', maxlength: '1000', placeholder: t('issues.card.editDescPlaceholder') },
     });
 
     const actions = createEl('div', { className: 'flex flex-wrap gap-2 justify-end' });
     const cancelBtn = createEl('button', {
       type: 'button',
-      text: 'Cancelar',
+      text: t('issues.card.cancelBtn'),
       className: 'btn-soft text-xs py-2 px-3',
     });
     cancelBtn.addEventListener('click', () => {
@@ -284,7 +315,7 @@
 
     const saveBtn = createEl('button', {
       type: 'submit',
-      text: '💾 Salvar alterações',
+      text: t('issues.card.saveBtn'),
       className: 'btn-primary text-xs py-2 px-4',
     });
     actions.appendChild(cancelBtn);
@@ -295,11 +326,11 @@
       const newTitle = titleInput.value.trim();
       const newDesc = descInput.value.trim();
       if (newTitle.length < 5 || newTitle.length > 120) {
-        notify('⚠️ O título precisa ter entre 5 e 120 caracteres.');
+        notify(`⚠️ ${t('issues.messages.titleLengthErr')}`);
         return;
       }
       if (newDesc && (newDesc.length < 10 || newDesc.length > 1000)) {
-        notify('⚠️ A descrição (quando preenchida) deve ter entre 10 e 1000 caracteres.');
+        notify(`⚠️ ${t('issues.messages.descLengthErr')}`);
         return;
       }
       saveBtn.disabled = true;
@@ -315,8 +346,8 @@
         return;
       }
       editingTaskId = null;
-      serverTasks = serverTasks.map((t) => (t.id === res.task.id ? res.task : t));
-      notify('✅ Task atualizada!');
+      serverTasks = serverTasks.map((tItem) => (tItem.id === res.task.id ? res.task : tItem));
+      notify(t('issues.messages.updatedToast'));
       renderList();
     });
 
@@ -331,12 +362,9 @@
   function buildTaskCard(item) {
     const isPendingSync = Boolean(item.pendingSync);
     const isDone = item.status === 'done';
-    const modMeta = MODULE_META[item.module] || {
-      label: item.module || 'geral',
-      cls: 'badge bg-creme text-navy/80 border border-navy/10',
-    };
-    const prioMeta = PRIORITY_META[item.priority] || PRIORITY_META.normal;
-    const stMeta = STATUS_META[item.status] || STATUS_META.pending;
+    const modMeta = getModuleMeta(item.module);
+    const prioMeta = getPriorityMeta(item.priority);
+    const stMeta = getStatusMeta(item.status);
     const canManage = tasksApi ? tasksApi.canManageTask(item) : false;
     const isOwned = !isPendingSync && tasksApi && tasksApi.isOwnedTask(item.id);
     const safeGithubUrl = safeGithubIssueUrl(item.github_issue_url);
@@ -360,7 +388,7 @@
       badgesWrap.appendChild(
         createEl('span', {
           className: 'badge bg-sol-soft text-amber-950 border border-amber-300',
-          text: '⏳ Aguardando sincronização',
+          text: t('issues.card.waitingSync'),
         })
       );
     } else {
@@ -371,7 +399,7 @@
       badgesWrap.appendChild(
         createEl('span', {
           className: 'badge bg-lavanda-soft text-indigo-950 border border-indigo-200',
-          text: '👤 Sua task',
+          text: t('issues.card.owned'),
         })
       );
     }
@@ -382,8 +410,10 @@
         target: '_blank',
         rel: 'noopener noreferrer',
         className: 'badge bg-navy text-white hover:bg-navy-800 transition no-underline',
-        text: item.github_issue_number ? `GitHub #${item.github_issue_number} ↗` : 'GitHub Issue ↗',
-        title: 'Abrir Issue correspondente no GitHub',
+        text: item.github_issue_number
+          ? t('issues.card.githubIssue', { n: item.github_issue_number })
+          : t('issues.card.githubIssueGeneric'),
+        title: t('issues.card.githubIssueTitle'),
       });
       badgesWrap.appendChild(ghLink);
     }
@@ -426,14 +456,14 @@
       footer.appendChild(
         createEl('span', {
           className: 'text-xs font-semibold text-amber-900',
-          text: 'Será enviada automaticamente quando a conexão voltar.',
+          text: t('issues.card.offlineHint'),
         })
       );
 
       const btns = createEl('div', { className: 'flex items-center gap-2' });
       const retryBtn = createEl('button', {
         type: 'button',
-        text: '🔄 Reenviar',
+        text: t('issues.card.retryBtn'),
         className: 'px-3 py-1.5 rounded-xl bg-sol-soft hover:bg-sol text-navy text-xs font-extrabold border border-amber-300/80 transition',
       });
       retryBtn.addEventListener('click', async () => {
@@ -442,13 +472,13 @@
 
       const removeLocalBtn = createEl('button', {
         type: 'button',
-        text: '🗑️ Remover',
+        text: t('issues.card.removeLocalBtn'),
         className: 'px-2.5 py-1.5 rounded-xl text-xs font-bold text-navy/60 hover:text-red-700 hover:bg-coral-soft transition',
-        title: 'Remover da fila offline',
+        title: t('issues.card.removeLocalTitle'),
       });
       removeLocalBtn.addEventListener('click', async () => {
         await tasksApi.deleteTask(item.tempId || item.id);
-        notify('🗑️ Item removido da fila offline.');
+        notify(t('issues.messages.removedOfflineToast'));
         renderList();
       });
 
@@ -468,16 +498,16 @@
         const statusWrap = createEl('div', { className: 'flex items-center gap-2' });
         const statusLabel = createEl('span', {
           className: 'text-xs font-bold text-navy/55',
-          text: 'Status:',
+          text: t('issues.card.statusLabel'),
         });
         const statusSelect = createEl('select', {
           className: 'px-2.5 py-1.5 rounded-xl bg-creme border border-navy/10 text-xs font-extrabold text-navy focus:outline-none focus:ring-2 focus:ring-sol',
-          ariaLabel: 'Alterar status da task',
+          ariaLabel: t('issues.card.statusAria'),
         });
         [
-          { value: 'pending', label: '🟡 Pendente' },
-          { value: 'in_progress', label: '🔵 Em andamento' },
-          { value: 'done', label: '✅ Concluída' },
+          { value: 'pending', label: t('issues.statuses.pending') },
+          { value: 'in_progress', label: t('issues.statuses.in_progress') },
+          { value: 'done', label: t('issues.statuses.done') },
         ].forEach((optItem) => {
           const opt = createEl('option', { value: optItem.value, text: optItem.label });
           if (item.status === optItem.value) opt.selected = true;
@@ -494,8 +524,8 @@
             notify(`⚠️ ${res.message}`);
             return;
           }
-          serverTasks = serverTasks.map((t) => (t.id === res.task.id ? res.task : t));
-          notify(nextStatus === 'done' ? '✅ Task concluída!' : '🔄 Status atualizado!');
+          serverTasks = serverTasks.map((tItem) => (tItem.id === res.task.id ? res.task : tItem));
+          notify(nextStatus === 'done' ? t('issues.messages.statusDoneToast') : t('issues.messages.statusUpdatedToast'));
           renderList();
         });
 
@@ -507,7 +537,7 @@
       const btns = createEl('div', { className: 'flex items-center gap-2' });
       const editBtn = createEl('button', {
         type: 'button',
-        text: '✏️ Editar',
+        text: t('issues.card.editBtn'),
         className: 'px-3 py-1.5 rounded-xl bg-creme hover:bg-creme-200 border border-navy/10 text-xs font-extrabold text-navy transition',
       });
       editBtn.addEventListener('click', () => {
@@ -517,11 +547,11 @@
 
       const delBtn = createEl('button', {
         type: 'button',
-        text: '🗑️ Excluir',
+        text: t('issues.card.deleteBtn'),
         className: 'px-3 py-1.5 rounded-xl text-xs font-extrabold text-navy/60 hover:text-red-700 hover:bg-coral-soft transition',
       });
       delBtn.addEventListener('click', async () => {
-        if (!window.confirm(`Deseja excluir a task "${item.title}"?`)) return;
+        if (!window.confirm(t('issues.card.confirmDelete', { title: item.title }))) return;
         delBtn.disabled = true;
         const res = await tasksApi.deleteTask(item.id);
         if (!res.ok) {
@@ -529,9 +559,9 @@
           notify(`⚠️ ${res.message}`);
           return;
         }
-        serverTasks = serverTasks.filter((t) => t.id !== item.id);
+        serverTasks = serverTasks.filter((tItem) => tItem.id !== item.id);
         if (editingTaskId === item.id) editingTaskId = null;
-        notify('🗑️ Task excluída.');
+        notify(t('issues.messages.deletedToast'));
         renderList();
       });
 
@@ -587,7 +617,7 @@
     try {
       const syncRes = await tasksApi.syncPendingTasks();
       if (!silent && syncRes.syncedCount > 0) {
-        notify(`✅ ${syncRes.syncedCount} task(s) da fila offline sincronizada(s)!`);
+        notify(t('issues.messages.syncedToast', { n: syncRes.syncedCount }));
       }
       await loadTasksFromApi();
     } finally {
@@ -598,8 +628,8 @@
 
   function exportMarkdown() {
     const combined = getCombinedVisibleTasks();
-    if (!combined.length) return '# Melhorias & Tasks — Tecnologia para Todos\n\nNenhuma task registrada.';
-    const lines = ['# 💡 Melhorias & Tasks — Tecnologia para Todos\n'];
+    if (!combined.length) return t('issues.messages.mdEmpty');
+    const lines = [t('issues.messages.mdHeader')];
     combined.forEach((it) => {
       const mark = it.status === 'done' ? 'x' : ' ';
       const gh = it.github_issue_number ? ` (GitHub #${it.github_issue_number})` : '';
@@ -613,11 +643,15 @@
   function init(notifyToast) {
     toastFn = notifyToast;
 
+    if (TPT.i18n && typeof TPT.i18n.onChange === 'function') {
+      TPT.i18n.onChange(() => renderList());
+    }
+
     if (tasksApi) {
       tasksApi.getClientId();
       tasksApi.onSyncUpdate(async (summary) => {
         if (summary && summary.syncedCount > 0) {
-          notify(`✅ ${summary.syncedCount} task(s) offline sincronizada(s) com o servidor!`);
+          notify(t('issues.messages.syncedOnlineToast', { n: summary.syncedCount }));
         }
         await loadTasksFromApi();
       });
@@ -650,12 +684,12 @@
         const priorityVal = prioInput ? prioInput.value : 'normal';
 
         if (title.length < 5 || title.length > 120) {
-          showFormError('O título precisa ter entre 5 e 120 caracteres.');
+          showFormError(t('issues.messages.titleLengthErr'));
           if (titleInput) titleInput.focus();
           return;
         }
         if (desc && (desc.length < 10 || desc.length > 1000)) {
-          showFormError('Se preencher a descrição, escreva entre 10 e 1000 caracteres (ou deixe em branco).');
+          showFormError(t('issues.messages.descLengthErr'));
           if (descInput) descInput.focus();
           return;
         }
@@ -670,8 +704,8 @@
         if (submitBtn) submitBtn.disabled = false;
 
         if (!res.ok) {
-          showFormError(res.message || 'Não foi possível criar a task.');
-          notify(`⚠️ ${res.message || 'Erro ao enviar task.'}`);
+          showFormError(res.message || t('issues.messages.createErr'));
+          notify(`⚠️ ${res.message || t('issues.messages.sendErrToast')}`);
           return;
         }
 
@@ -680,10 +714,10 @@
         if (titleCount) titleCount.textContent = '0/120';
 
         if (res.queued) {
-          notify('⏳ Sem conexão: task salva na fila e será enviada ao reconectar!');
+          notify(t('issues.messages.queuedToast'));
           renderList();
         } else {
-          notify('🎉 Task criada! Sincronizando com o GitHub…');
+          notify(t('issues.messages.createdToast'));
           await loadTasksFromApi();
           clearTimeout(bgRefreshTimer);
           bgRefreshTimer = setTimeout(() => {
@@ -705,7 +739,7 @@
     if (refreshBtn) {
       refreshBtn.addEventListener('click', async () => {
         await handleSyncAndRefresh(false);
-        notify('🔄 Lista atualizada.');
+        notify(t('issues.messages.refreshedToast'));
       });
     }
 
@@ -715,7 +749,7 @@
         const md = exportMarkdown();
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(md).then(() => {
-            notify('📋 Lista de tasks copiada em Markdown!');
+            notify(t('issues.messages.copiedMdToast'));
           });
         }
       });

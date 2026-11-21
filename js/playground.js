@@ -19,7 +19,7 @@
   const STORAGE_CODE_KEY = 'tpt.playground.code';
   const STORAGE_FONT_KEY = 'tpt.playground.fontSize';
 
-  const DEFAULT_CODE = `# 👋 Bem-vindo ao Playground de Python!
+  const FALLBACK_DEFAULT_CODE = `# 👋 Bem-vindo ao Playground de Python!
 # Clique em "▶ Rodar Código" (ou aperte Ctrl + Enter) para testar.
 
 nome = input("Qual é o seu nome? ")
@@ -27,6 +27,15 @@ pais = input("De qual país você é? ")
 
 print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
 `;
+
+  function t(key, vars) {
+    return TPT.i18n && typeof TPT.i18n.t === 'function' ? TPT.i18n.t(key, vars) : key;
+  }
+
+  function getDefaultCode() {
+    const val = t('playground.defaultCode');
+    return val && val !== 'playground.defaultCode' ? val : FALLBACK_DEFAULT_CODE;
+  }
 
   let monacoEditor = null;
   let fallbackTextarea = null;
@@ -39,6 +48,8 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
   let workerReadyWaiters = [];
   let isRunning = false;
   let activeInputCleanup = null;
+  let lastStatus = { state: 'loading', key: 'playground.statusNotLoaded', vars: null };
+  let lastExampleLabel = { key: 'playground.defaultLabel', vars: null };
 
   const els = {};
 
@@ -175,7 +186,7 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
   function ensureEditor(initialCode) {
     if (monacoReadyPromise) return monacoReadyPromise;
 
-    const startCode = initialCode || localStorage.getItem(STORAGE_CODE_KEY) || DEFAULT_CODE;
+    const startCode = initialCode || localStorage.getItem(STORAGE_CODE_KEY) || getDefaultCode();
 
     monacoReadyPromise = (async () => {
       try {
@@ -268,7 +279,14 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
   function getCode() {
     if (monacoEditor) return monacoEditor.getValue();
     if (fallbackTextarea) return fallbackTextarea.value;
-    return localStorage.getItem(STORAGE_CODE_KEY) || DEFAULT_CODE;
+    return localStorage.getItem(STORAGE_CODE_KEY) || getDefaultCode();
+  }
+
+  function setExampleLabel(key, vars) {
+    lastExampleLabel = { key, vars: vars || null };
+    if (els.exampleLabel) {
+      els.exampleLabel.textContent = t(key, vars);
+    }
   }
 
   async function setCode(code, title) {
@@ -285,10 +303,10 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
       fallbackTextarea.value = code;
       fallbackTextarea.focus();
     }
-    if (els.exampleLabel) {
-      els.exampleLabel.textContent = title
-        ? `Exemplo carregado: ${title} — clique em ▶ Rodar Código!`
-        : 'Escreva seu código e clique em ▶ Rodar Código.';
+    if (title) {
+      setExampleLabel('playground.loadedExampleLabel', { title });
+    } else {
+      setExampleLabel('playground.defaultLabel');
     }
     if (els.runBtn) {
       els.runBtn.classList.add('pulse');
@@ -342,28 +360,28 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-    if (els.exampleLabel) {
-      els.exampleLabel.textContent = `💾 Arquivo "${filename}" baixado com o código atual do editor!`;
-    }
+    setExampleLabel('playground.downloadedLabel', { filename });
     if (typeof TPT.showToast === 'function') {
-      TPT.showToast(`💾 Código baixado como ${filename}!`);
+      TPT.showToast(t('playground.downloadedToast', { filename }));
     }
   }
 
   /* =========================================================
      2. MOTOR PYTHON (Pyodide Worker)
      ========================================================= */
-  function setStatus(state, text) {
+  function setStatus(state, keyOrText, vars) {
     if (!els.status || !els.statusText) return;
+    lastStatus = { state, key: keyOrText, vars: vars || null };
     els.status.className = 'status-pill status-' + state;
-    els.statusText.textContent = text;
+    const translated = t(keyOrText, vars);
+    els.statusText.textContent = translated;
   }
 
   function ensureWorker() {
     if (worker) return Promise.resolve();
     return new Promise((resolve) => {
       workerReadyWaiters.push(resolve);
-      setStatus('loading', 'Carregando o Python…');
+      setStatus('loading', 'playground.statusLoading');
 
       const workerSource = `(${window.TPT_pyWorkerMain.toString()})(${JSON.stringify(PYODIDE_INDEX_URL)});`;
       const blob = new Blob([workerSource], { type: 'application/javascript' });
@@ -371,8 +389,8 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
 
       worker.onmessage = (event) => handleWorkerMessage(event.data || {});
       worker.onerror = (err) => {
-        setStatus('error', 'Erro ao iniciar o Python');
-        appendSystem('⚠️ Não foi possível carregar o Python. Verifique sua internet e recarregue a página.', 'warn');
+        setStatus('error', 'playground.statusStartError');
+        appendSystem(t('playground.loadPythonError'), 'warn');
         console.error(err);
       };
     });
@@ -386,19 +404,21 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
 
   function handleWorkerMessage(msg) {
     switch (msg.type) {
-      case 'status':
-        setStatus(msg.state || 'loading', msg.message || 'Carregando…');
+      case 'status': {
+        const key = msg.state === 'loading' ? 'playground.statusWorkerDownloading' : (msg.message || 'playground.statusLoading');
+        setStatus(msg.state || 'loading', key);
         break;
+      }
       case 'ready': {
         workerReady = true;
-        setStatus('ready', `Python ${msg.version || ''} pronto ✓`.trim());
+        setStatus('ready', 'playground.statusReady', { version: msg.version || '' });
         const waiters = workerReadyWaiters.splice(0);
         waiters.forEach((fn) => fn());
         break;
       }
       case 'fatal':
-        setStatus('error', 'Falha no Python');
-        appendSystem('⚠️ ' + (msg.message || 'Erro ao carregar o Python.'), 'warn');
+        setStatus('error', 'playground.statusFailed');
+        appendSystem('⚠️ ' + (msg.message || t('playground.loadPythonError')), 'warn');
         setRunningUI(false);
         break;
       case 'stdout':
@@ -460,7 +480,7 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
     if (!els.console) return;
     if (activeInputCleanup) activeInputCleanup();
 
-    setStatus('input', '⌨️ Digite no console e aperte Enter');
+    setStatus('input', 'playground.statusInput');
 
     const wrap = document.createElement('span');
     wrap.className = 'console-input-wrap';
@@ -468,16 +488,16 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'console-input';
-    input.placeholder = 'digite aqui e aperte Enter…';
+    input.placeholder = t('playground.inputPlaceholder');
     input.autocomplete = 'off';
     input.autocapitalize = 'off';
     input.spellcheck = false;
-    input.setAttribute('aria-label', 'Digite a resposta para o programa e aperte Enter');
+    input.setAttribute('aria-label', t('playground.inputAria'));
 
     const sendBtn = document.createElement('button');
     sendBtn.type = 'button';
     sendBtn.className = 'console-input-send';
-    sendBtn.textContent = 'Enviar ↵';
+    sendBtn.textContent = t('playground.inputSendBtn');
 
     wrap.appendChild(input);
     wrap.appendChild(sendBtn);
@@ -495,7 +515,7 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
       echo.textContent = value + '\n';
       wrap.replaceWith(echo);
       activeInputCleanup = null;
-      setStatus('running', 'Executando…');
+      setStatus('running', 'playground.statusRunning');
       if (worker) worker.postMessage({ type: 'input', value });
       scrollConsoleToEnd();
     };
@@ -516,7 +536,7 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
   }
 
   /* =========================================================
-     4. TRADUTOR DE ERROS DO PYTHON PARA PORTUGUÊS SIMPLES
+     4. TRADUTOR DE ERROS DO PYTHON PARA LINGUAGEM SIMPLES
      ========================================================= */
   function translateError(err) {
     const type = (err && err.type) || 'Error';
@@ -525,87 +545,88 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
     const codeLine = (err && err.codeLine) || '';
     const trimmed = codeLine.trim();
 
-    let title = 'Ops! O Python encontrou um problema';
-    let explanation = 'Confira a linha indicada e tente novamente.';
-    let tip = 'Compare o seu código com o exemplo da aula.';
+    let title = t('playground.errors.defaultTitle');
+    let explanation = t('playground.errors.defaultExplanation');
+    let tip = t('playground.errors.defaultTip');
 
     if (type === 'SyntaxError') {
-      title = 'Erro de escrita (SyntaxError)';
+      title = t('playground.errors.syntaxTitle');
       if (/unterminated string|EOL while scanning string/i.test(msg)) {
-        explanation = 'Você abriu aspas, mas esqueceu de fechar no final do texto.';
-        tip = 'Todo texto precisa começar e terminar com aspas: "assim".';
+        explanation = t('playground.errors.syntaxQuotes');
+        tip = t('playground.errors.syntaxQuotesTip');
       } else if (/was never closed|\('\s*was never closed/i.test(msg) || /unexpected EOF/i.test(msg)) {
-        explanation = 'Um parêntese ( ) ou colchete [ ] foi aberto, mas não foi fechado.';
-        tip = 'Conte os parênteses: para cada ( precisa existir um ).';
+        explanation = t('playground.errors.syntaxParen');
+        tip = t('playground.errors.syntaxParenTip');
       } else if (/expected ':'/i.test(msg) || (/^(if|elif|else|for|while|def)\b/.test(trimmed) && !trimmed.endsWith(':'))) {
-        explanation = 'Faltaram os dois pontos ( : ) no final desta linha.';
-        tip = 'Linhas com if, elif, else, for e while sempre terminam com :';
+        explanation = t('playground.errors.syntaxColon');
+        tip = t('playground.errors.syntaxColonTip');
       } else if (/cannot assign to literal|cannot assign to/i.test(msg) || (/^if\b/.test(trimmed) && /[^=!<>]=[^=]/.test(trimmed))) {
-        explanation = 'Você usou um sinal = só dentro de uma comparação, ou tentou guardar valor em algo que não é variável.';
-        tip = 'Um = guarda valor. Para comparar dois valores no if/while, use dois: ==';
+        explanation = t('playground.errors.syntaxAssign');
+        tip = t('playground.errors.syntaxAssignTip');
       } else {
-        explanation = 'O Python não conseguiu ler esta linha porque falta ou sobra algum símbolo.';
-        tip = 'Veja se há aspas, parênteses ( ), vírgulas ou dois pontos : faltando.';
+        explanation = t('playground.errors.syntaxGeneric');
+        tip = t('playground.errors.syntaxGenericTip');
       }
     } else if (type === 'IndentationError' || type === 'TabError') {
-      title = 'Erro nos espaços do início da linha (IndentationError)';
-      explanation = 'As linhas dentro de um if, else, for ou while precisam começar com 4 espaços.';
-      tip = 'Use a tecla Tab (ou 4 espaços) nas linhas que ficam “dentro” do bloco.';
+      title = t('playground.errors.indentTitle');
+      explanation = t('playground.errors.indentExplanation');
+      tip = t('playground.errors.indentTip');
     } else if (type === 'NameError') {
       const m = msg.match(/name '([^']+)' is not defined/);
       const name = m ? m[1] : '';
-      title = `Nome desconhecido${name ? `: "${name}"` : ''} (NameError)`;
+      title = t('playground.errors.nameTitle', { name: name ? `: "${name}"` : '' });
       if (name && ['Print', 'Input', 'If', 'Else', 'Elif', 'For', 'While', 'Len', 'Int', 'Float'].includes(name)) {
-        explanation = `Você escreveu "${name}" com letra maiúscula, mas os comandos do Python são em minúsculas.`;
-        tip = `Troque "${name}" por "${name.toLowerCase()}".`;
+        explanation = t('playground.errors.nameCapitalExplanation', { name });
+        tip = t('playground.errors.nameCapitalTip', { name, lower: name.toLowerCase() });
       } else if (name && ['true', 'false', 'none'].includes(name)) {
         const cap = name.charAt(0).toUpperCase() + name.slice(1);
-        explanation = `No Python, ${cap} começa com a primeira letra maiúscula.`;
-        tip = `Troque "${name}" por "${cap}".`;
+        explanation = t('playground.errors.nameBoolExplanation', { cap });
+        tip = t('playground.errors.nameBoolTip', { name, cap });
       } else {
-        explanation = `O Python não conhece "${name || 'esse nome'}". Pode ser uma variável que ainda não foi criada, um erro de digitação ou um texto sem aspas.`;
+        const displayName = name || t('playground.errors.nameFallback');
+        explanation = t('playground.errors.nameUnknownExplanation', { name: displayName });
         tip = err.suggestion
-          ? `Você quis dizer "${err.suggestion}"? Se era um texto, coloque entre aspas: "${name}".`
-          : `Se "${name}" for um texto, coloque entre aspas: "${name}". Se for variável, crie ela antes com =.`;
+          ? t('playground.errors.nameUnknownTipSuggest', { suggestion: err.suggestion, name })
+          : t('playground.errors.nameUnknownTipGeneric', { name });
       }
     } else if (type === 'TypeError') {
-      title = 'Tipos misturados (TypeError)';
+      title = t('playground.errors.typeTitle');
       if (/can only concatenate str|unsupported operand type\(s\) for \+/i.test(msg)) {
-        explanation = 'Você tentou somar/juntar um texto (str) com um número (int ou float).';
-        tip = 'Para fazer conta com input(), use int(input(...)) ou float(input(...)). Para mostrar vários itens no print, separe com vírgula.';
+        explanation = t('playground.errors.typeConcatExplanation');
+        tip = t('playground.errors.typeConcatTip');
       } else if (/not callable/i.test(msg)) {
-        explanation = 'Você usou parênteses ( ) depois de algo que não é uma função (ou criou uma variável chamada print/input).';
-        tip = 'Verifique se você não escreveu print = ... sem querer.';
+        explanation = t('playground.errors.typeCallableExplanation');
+        tip = t('playground.errors.typeCallableTip');
       } else {
-        explanation = 'Uma função ou conta recebeu um tipo de valor diferente do esperado.';
-        tip = 'Confira se você não misturou textos com números.';
+        explanation = t('playground.errors.typeGenericExplanation');
+        tip = t('playground.errors.typeGenericTip');
       }
     } else if (type === 'ValueError') {
-      title = 'Valor inválido (ValueError)';
+      title = t('playground.errors.valueTitle');
       if (/invalid literal for int/i.test(msg)) {
-        explanation = 'O int() tentou transformar em número inteiro algo que não é inteiro (como letras, vazio ou número com ponto/vírgula).';
-        tip = 'Digite apenas números inteiros (ex.: 25) ou use float() para números com ponto (ex.: 5.50).';
+        explanation = t('playground.errors.valueIntExplanation');
+        tip = t('playground.errors.valueIntTip');
       } else if (/could not convert string to float/i.test(msg)) {
-        explanation = 'O float() não conseguiu transformar o texto em número decimal.';
-        tip = 'Em Python, números decimais usam ponto e não vírgula: escreva 5.50 em vez de 5,50.';
+        explanation = t('playground.errors.valueFloatExplanation');
+        tip = t('playground.errors.valueFloatTip');
       } else if (/list\.remove\(x\): x not in list/i.test(msg)) {
-        explanation = 'Você tentou remover um item com remove(), mas ele não está na lista.';
-        tip = 'Antes de remover, confira com: if item in lista:';
+        explanation = t('playground.errors.valueRemoveExplanation');
+        tip = t('playground.errors.valueRemoveTip');
       } else {
-        explanation = 'O valor passado não serve para esta operação.';
+        explanation = t('playground.errors.valueGenericExplanation');
       }
     } else if (type === 'IndexError') {
-      title = 'Posição fora da lista (IndexError)';
-      explanation = 'Você pediu um índice [posição] que não existe na lista.';
-      tip = 'Lembre-se: a contagem começa no 0! Uma lista com 3 itens tem posições 0, 1 e 2.';
+      title = t('playground.errors.indexTitle');
+      explanation = t('playground.errors.indexExplanation');
+      tip = t('playground.errors.indexTip');
     } else if (type === 'ZeroDivisionError') {
-      title = 'Divisão por zero (ZeroDivisionError)';
-      explanation = 'Na matemática e no Python, não é possível dividir um número por 0.';
-      tip = 'Confira se a variável depois da barra / não está valendo 0.';
+      title = t('playground.errors.zeroTitle');
+      explanation = t('playground.errors.zeroExplanation');
+      tip = t('playground.errors.zeroTip');
     } else if (type === 'AttributeError') {
-      title = 'Comando não existe para este tipo (AttributeError)';
-      explanation = 'Você usou um comando com ponto (como .append) em algo que não tem esse comando.';
-      tip = 'append() e remove() funcionam em listas [ ]. Confira o nome da variável e a grafia.';
+      title = t('playground.errors.attrTitle');
+      explanation = t('playground.errors.attrExplanation');
+      tip = t('playground.errors.attrTip');
     }
 
     return { title, explanation, tip, line, codeLine, original: err.original || `${type}: ${msg}` };
@@ -624,13 +645,13 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
       <div class="err-card-head">
         <span aria-hidden="true">🐞</span>
         <span>${escapeHtml(info.title)}</span>
-        ${info.line ? `<span class="err-line-badge">Linha ${info.line}</span>` : ''}
+        ${info.line ? `<span class="err-line-badge">${escapeHtml(t('playground.errors.lineBadge', { line: info.line }))}</span>` : ''}
       </div>
       <div class="err-card-body">
         <p>${escapeHtml(info.explanation)}</p>
         ${info.codeLine ? `<div class="err-code"><span class="ln">${info.line || ''}</span>${escapeHtml(info.codeLine)}</div>` : ''}
-        <div class="err-tip">💡 <strong>Dica:</strong> ${escapeHtml(info.tip)}</div>
-        <div class="err-original">Mensagem original do Python: ${escapeHtml(info.original)}</div>
+        <div class="err-tip">💡 <strong>${escapeHtml(t('playground.errors.tipLabel'))}</strong> ${escapeHtml(info.tip)}</div>
+        <div class="err-original">${escapeHtml(t('playground.errors.originalLabel'))} ${escapeHtml(info.original)}</div>
       </div>
     `;
     els.console.appendChild(card);
@@ -655,23 +676,23 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
     clearErrorHighlight();
 
     if (!code.trim()) {
-      appendSystem('✏️ O editor está vazio. Escreva um comando, por exemplo: print("Olá!")', 'warn');
+      appendSystem(t('playground.emptyEditorWarn'), 'warn');
       return;
     }
 
     setRunningUI(true);
     const head = document.createElement('span');
     head.className = 'console-run-head';
-    head.textContent = '▶ Executando main.py…';
+    head.textContent = t('playground.runningHead');
     els.console.appendChild(head);
 
     if (!workerReady) {
-      appendSystem('⏳ Preparando o Python no navegador (só na primeira vez)…');
+      appendSystem(t('playground.preparingPython'));
     }
     await waitForWorkerReady();
     if (!isRunning) return; // caso o usuário tenha clicado em Parar enquanto carregava
 
-    setStatus('running', 'Executando…');
+    setStatus('running', 'playground.statusRunning');
     worker.postMessage({ type: 'run', code });
   }
 
@@ -681,10 +702,11 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
 
     const secs = typeof msg.elapsed === 'number' ? msg.elapsed.toFixed(2).replace('.', ',') : null;
     if (msg.ok) {
-      setStatus('ready', 'Pronto ✓');
-      appendSystem(`✓ Programa finalizado${secs ? ` em ${secs}s` : ''}.`, 'ok');
+      setStatus('ready', 'playground.statusReadyShort');
+      const timeSuffix = secs ? t('playground.finishedTime', { secs }) : '';
+      appendSystem(t('playground.finishedOk', { time: timeSuffix }), 'ok');
     } else {
-      setStatus('error', 'Erro no código');
+      setStatus('error', 'playground.statusCodeError');
       if (msg.error) renderFriendlyError(msg.error);
     }
   }
@@ -698,8 +720,8 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
       workerReadyWaiters = [];
     }
     setRunningUI(false);
-    setStatus('error', 'Interrompido');
-    appendSystem('⏹ Execução interrompida pelo usuário. O Python será reiniciado na próxima execução.', 'warn');
+    setStatus('error', 'playground.statusStopped');
+    appendSystem(t('playground.stoppedWarn'), 'warn');
     ensureWorker();
   }
 
@@ -717,7 +739,7 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
     }
     els.clearConsoleBtn.addEventListener('click', () => {
       clearConsole();
-      appendSystem('Console limpo. Clique em ▶ Rodar Código para executar novamente.');
+      appendSystem(t('playground.consoleCleared'));
     });
     els.clearCodeBtn.addEventListener('click', async () => {
       await ensureEditor();
@@ -729,9 +751,7 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
         fallbackTextarea.value = '';
         fallbackTextarea.focus();
       }
-      if (els.exampleLabel) {
-        els.exampleLabel.textContent = 'Editor limpo. Escreva seu código e clique em ▶ Rodar Código.';
-      }
+      setExampleLabel('playground.editorClearedLabel');
     });
     els.fontUpBtn.addEventListener('click', () => changeFontSize(2));
     els.fontDownBtn.addEventListener('click', () => changeFontSize(-2));
@@ -741,6 +761,13 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
       const inp = els.console.querySelector('.console-input');
       if (inp) inp.focus();
     });
+
+    if (TPT.i18n && typeof TPT.i18n.onChange === 'function') {
+      TPT.i18n.onChange(() => {
+        setStatus(lastStatus.state, lastStatus.key, lastStatus.vars);
+        setExampleLabel(lastExampleLabel.key, lastExampleLabel.vars);
+      });
+    }
   }
 
   /** Chamado quando a aba Playground é aberta */

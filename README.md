@@ -25,6 +25,8 @@ A partir dessa vivência, decidi construir esta plataforma web: um espaço visua
 * **🏠 Início & Propósito:** Apresentação da iniciativa, da motivação educacional e da proposta aberta da plataforma.
 * **📘 Trilha de Aulas (Cards Didáticos):** Conteúdos divididos em blocos curtos e visuais (inspirados nos slides reais das aulas), com exemplos práticos e botão rápido para testar o código na hora.
 * **📖 Glossário de Palavras:** Dicionário descomplicado que traduz termos como `print()`, `variável`, `input()`, `lista`, `for` e `while` para a linguagem do dia a dia.
+* **🌍 Suporte Multilíngue (PT / ES / EN):** Toda a interface, aulas, glossário e mensagens de erro do Python disponíveis em Português, Español e English, com detecção automática e troca instantânea no cabeçalho (documentação de manutenção em [docs/I18N.md](docs/I18N.md)).
+* **🌙 Modo Claro e Modo Escuro:** Alternância acessível entre tema claro e escuro com preservação em `localStorage` (`tpt_theme`) e detecção automática de `prefers-color-scheme`.
 * **⚡ Playground Interativo (Estilo VS Code):**
   * Editor de código completo no navegador com destaque de sintaxe e numeração de linhas (**Monaco Editor**).
   * Execução real de Python 100% no navegador via WebAssembly (**Pyodide**), dispensando servidores backend.
@@ -48,9 +50,10 @@ A partir dessa vivência, decidi construir esta plataforma web: um espaço visua
 - [x] Estrutura base com identidade visual acolhedora e acessível
 - [x] Playground Python integrado com suporte a `input()`
 - [x] Conteúdos iniciais: Aula 1 (Fundamentos) e Aula 2 (Listas e Repetições)
+- [x] Modo bilíngue/multilíngue (PT, ES e EN) em toda a plataforma
+- [x] Modo escuro completo com persistência e respeito a `prefers-color-scheme`
 - [ ] Expansão da trilha de Python (Funções e Dicionários)
 - [ ] Suporte modular para novas linguagens (HTML/CSS e JavaScript)
-- [ ] Modo bilíngue/multilíngue para auxiliar ainda mais estudantes migrantes
 
 ---
 
