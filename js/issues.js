@@ -156,18 +156,6 @@
       connPill.appendChild(dot);
       connPill.appendChild(document.createTextNode(labelText));
     }
-
-    const adminBtn = document.getElementById('issues-admin-btn');
-    if (adminBtn && tasksApi) {
-      const active = tasksApi.isAdminActive();
-      adminBtn.textContent = active ? '🔓 Admin ativo' : '🔐 Admin';
-      adminBtn.title = active
-        ? 'Modo Admin ativo (clique para sair)'
-        : 'Entrar no modo Admin com ADMIN_KEY';
-      adminBtn.className = active
-        ? 'px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-navy text-sol border border-navy shadow-soft transition'
-        : 'px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-white text-navy/70 border border-navy/15 hover:bg-creme-200 transition';
-    }
   }
 
   function renderStats() {
@@ -469,47 +457,52 @@
       footer.appendChild(btns);
       card.appendChild(footer);
     } else if (canManage) {
+      const showStatusSelect = Boolean(tasksApi && tasksApi.isAdminActive());
       const footer = createEl('div', {
-        className: 'pt-2.5 border-t border-navy/5 flex flex-wrap items-center justify-between gap-2',
+        className: `pt-2.5 border-t border-navy/5 flex flex-wrap items-center gap-2 ${
+          showStatusSelect ? 'justify-between' : 'justify-end'
+        }`,
       });
 
-      const statusWrap = createEl('div', { className: 'flex items-center gap-2' });
-      const statusLabel = createEl('span', {
-        className: 'text-xs font-bold text-navy/55',
-        text: 'Status:',
-      });
-      const statusSelect = createEl('select', {
-        className: 'px-2.5 py-1.5 rounded-xl bg-creme border border-navy/10 text-xs font-extrabold text-navy focus:outline-none focus:ring-2 focus:ring-sol',
-        ariaLabel: 'Alterar status da task',
-      });
-      [
-        { value: 'pending', label: '🟡 Pendente' },
-        { value: 'in_progress', label: '🔵 Em andamento' },
-        { value: 'done', label: '✅ Concluída' },
-      ].forEach((optItem) => {
-        const opt = createEl('option', { value: optItem.value, text: optItem.label });
-        if (item.status === optItem.value) opt.selected = true;
-        statusSelect.appendChild(opt);
-      });
+      if (showStatusSelect) {
+        const statusWrap = createEl('div', { className: 'flex items-center gap-2' });
+        const statusLabel = createEl('span', {
+          className: 'text-xs font-bold text-navy/55',
+          text: 'Status:',
+        });
+        const statusSelect = createEl('select', {
+          className: 'px-2.5 py-1.5 rounded-xl bg-creme border border-navy/10 text-xs font-extrabold text-navy focus:outline-none focus:ring-2 focus:ring-sol',
+          ariaLabel: 'Alterar status da task',
+        });
+        [
+          { value: 'pending', label: '🟡 Pendente' },
+          { value: 'in_progress', label: '🔵 Em andamento' },
+          { value: 'done', label: '✅ Concluída' },
+        ].forEach((optItem) => {
+          const opt = createEl('option', { value: optItem.value, text: optItem.label });
+          if (item.status === optItem.value) opt.selected = true;
+          statusSelect.appendChild(opt);
+        });
 
-      statusSelect.addEventListener('change', async () => {
-        const nextStatus = statusSelect.value;
-        statusSelect.disabled = true;
-        const res = await tasksApi.updateTask(item.id, { status: nextStatus });
-        statusSelect.disabled = false;
-        if (!res.ok) {
-          statusSelect.value = item.status;
-          notify(`⚠️ ${res.message}`);
-          return;
-        }
-        serverTasks = serverTasks.map((t) => (t.id === res.task.id ? res.task : t));
-        notify(nextStatus === 'done' ? '✅ Task concluída!' : '🔄 Status atualizado!');
-        renderList();
-      });
+        statusSelect.addEventListener('change', async () => {
+          const nextStatus = statusSelect.value;
+          statusSelect.disabled = true;
+          const res = await tasksApi.updateTask(item.id, { status: nextStatus });
+          statusSelect.disabled = false;
+          if (!res.ok) {
+            statusSelect.value = item.status;
+            notify(`⚠️ ${res.message}`);
+            return;
+          }
+          serverTasks = serverTasks.map((t) => (t.id === res.task.id ? res.task : t));
+          notify(nextStatus === 'done' ? '✅ Task concluída!' : '🔄 Status atualizado!');
+          renderList();
+        });
 
-      statusWrap.appendChild(statusLabel);
-      statusWrap.appendChild(statusSelect);
-      footer.appendChild(statusWrap);
+        statusWrap.appendChild(statusLabel);
+        statusWrap.appendChild(statusSelect);
+        footer.appendChild(statusWrap);
+      }
 
       const btns = createEl('div', { className: 'flex items-center gap-2' });
       const editBtn = createEl('button', {
@@ -696,27 +689,6 @@
           bgRefreshTimer = setTimeout(() => {
             loadTasksFromApi();
           }, 2500);
-        }
-      });
-    }
-
-    const adminBtn = document.getElementById('issues-admin-btn');
-    if (adminBtn && tasksApi) {
-      adminBtn.addEventListener('click', () => {
-        if (tasksApi.isAdminActive()) {
-          if (window.confirm('Deseja desativar o Modo Admin neste navegador?')) {
-            tasksApi.clearAdminKey();
-            editingTaskId = null;
-            renderList();
-            notify('🔒 Modo Admin desativado.');
-          }
-          return;
-        }
-        const key = window.prompt('Digite a chave de administrador (ADMIN_KEY):');
-        if (key && key.trim()) {
-          tasksApi.setAdminKey(key.trim());
-          renderList();
-          notify('🔓 Modo Admin ativado!');
         }
       });
     }

@@ -92,6 +92,11 @@ def extract_client_ip(request: Request) -> str:
     return "unknown"
 
 
+def is_admin_request(x_admin_key: Optional[str], admin_key: str) -> bool:
+    """Verifica se a requisição possui a ADMIN_KEY válida."""
+    return bool(x_admin_key and admin_key and secrets.compare_digest(x_admin_key.strip(), admin_key))
+
+
 def is_authorized(
     task_raw: dict,
     x_client_id: Optional[str],
@@ -99,7 +104,7 @@ def is_authorized(
     admin_key: str,
 ) -> bool:
     """Permite mutação somente ao navegador criador (owner_id) ou ao admin (ADMIN_KEY)."""
-    if x_admin_key and admin_key and secrets.compare_digest(x_admin_key.strip(), admin_key):
+    if is_admin_request(x_admin_key, admin_key):
         return True
     if x_client_id and task_raw.get("owner_id"):
         return secrets.compare_digest(x_client_id.strip(), str(task_raw["owner_id"]))
@@ -256,6 +261,12 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Nenhum campo válido informado para atualização.",
+            )
+
+        if "status" in updates and not is_admin_request(x_admin_key, cfg.admin_key):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Apenas administradores podem alterar o status de uma task.",
             )
 
         updated = db.update_task(task_id, updates)
