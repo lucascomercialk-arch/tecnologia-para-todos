@@ -1,302 +1,739 @@
 /* =========================================================
-   Tecnologia para Todos — Aba Melhorias & Bugs (Issues #1, #2…)
+   Tecnologia para Todos — Aba Melhorias & Tasks (API + Offline)
    ---------------------------------------------------------
-   • Cada sugestão ou bug registrado recebe um número sequencial
-     único (#1, #2, #3...) que nunca se repete.
-   • Os dados ficam salvos no navegador (localStorage) e podem
-     ser copiados em Markdown com 1 clique.
+   • Consome window.TPT.tasksApi (FastAPI + SQLite + GitHub Issues).
+   • Renderização 100% segura via createElement / textContent
+     (Anti-XSS: nenhum uso de innerHTML).
+   • Suporte a fila offline (tpt_pending_sync), cache de leitura
+     (tpt_tasks_cache), propriedade por navegador (X-Client-Id)
+     e modo Admin (X-Admin-Key).
    ========================================================= */
 (function () {
   'use strict';
 
   const TPT = (window.TPT = window.TPT || {});
-  const { escapeHtml } = TPT.syntax;
+  const tasksApi = TPT.tasksApi;
 
-  const STORAGE_ISSUES_KEY = 'tpt.issues.list';
-  const STORAGE_SEQ_KEY = 'tpt.issues.nextNumber';
-
-  const INITIAL_ISSUES = [
-    {
-      number: 1,
-      type: 'conteudo',
-      area: 'Geral',
-      title: 'Criar Aula 3 sobre Funções (def) e Dicionários',
-      desc: 'Seria muito legal ter uma próxima aula mostrando como criar funções com def para organizar o código e dicionários para guardar dados com chave e valor.',
-      author: 'Lucas R. K.',
-      status: 'open',
-      votes: 3,
-      createdAt: 'Hoje',
-    },
-    {
-      number: 2,
-      type: 'melhoria',
-      area: 'Playground',
-      title: 'Botão para baixar o código escrito como arquivo .py',
-      desc: 'Permitir que o aluno salve o programa que escreveu no Playground direto no computador ou celular como meu_programa.py.',
-      author: 'Comunidade',
-      status: 'done',
-      votes: 2,
-      createdAt: 'Hoje',
-    },
-  ];
-
-  const TYPE_META = {
-    melhoria: { label: '💡 Melhoria', badge: 'bg-sol-soft text-amber-950 border border-amber-300/70' },
-    bug: { label: '🐞 Bug / Erro', badge: 'bg-coral-soft text-red-950 border border-red-300/70' },
-    conteudo: { label: '📘 Nova Aula', badge: 'bg-ceu-soft text-sky-950 border border-sky-300/70' },
+  const MODULE_META = {
+    melhorias: { label: '💡 Melhoria', cls: 'badge bg-sol-soft text-amber-950 border border-amber-300/70' },
+    bug: { label: '🐞 Bug', cls: 'badge bg-coral-soft text-red-950 border border-red-300/70' },
+    python: { label: '🐍 Python', cls: 'badge bg-ceu-soft text-sky-950 border border-sky-300/70' },
+    html: { label: '🌐 HTML/CSS', cls: 'badge bg-lavanda-soft text-indigo-950 border border-indigo-300/70' },
+    geral: { label: '🏠 Geral', cls: 'badge bg-creme text-navy/80 border border-navy/10' },
+    glossario: { label: '📖 Glossário', cls: 'badge bg-menta-soft text-teal-950 border border-teal-300/70' },
+    playground: { label: '💻 Playground', cls: 'badge bg-ceu-soft text-sky-950 border border-sky-300/70' },
   };
 
-  let issues = [];
-  let nextNumber = 3;
-  let currentFilter = 'all';
+  const PRIORITY_META = {
+    baixa: { label: 'Baixa', cls: 'badge bg-creme text-navy/65 border border-navy/10' },
+    normal: { label: 'Normal', cls: 'badge bg-ceu-soft text-sky-900 border border-sky-200' },
+    alta: { label: '🔥 Alta', cls: 'badge bg-salmao-soft text-rose-950 border border-rose-300/70' },
+  };
 
-  function loadState() {
-    try {
-      const raw = localStorage.getItem(STORAGE_ISSUES_KEY);
-      const seq = Number(localStorage.getItem(STORAGE_SEQ_KEY));
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) issues = parsed;
-      } else {
-        issues = INITIAL_ISSUES.slice();
-      }
-      const maxExisting = issues.reduce((m, it) => Math.max(m, Number(it.number) || 0), 0);
-      nextNumber = Math.max(seq || 1, maxExisting + 1);
-    } catch (_) {
-      issues = INITIAL_ISSUES.slice();
-      nextNumber = 3;
+  const STATUS_META = {
+    pending: { label: '🟡 Pendente', cls: 'badge bg-amber-100/80 text-amber-900' },
+    in_progress: { label: '🔵 Em andamento', cls: 'badge bg-ceu-soft text-sky-950 border border-sky-300/70' },
+    done: { label: '✅ Concluída', cls: 'badge bg-menta-soft text-teal-950 border border-teal-300/70' },
+  };
+
+  let statusFilter = '';
+  let moduleFilter = '';
+  let serverTasks = [];
+  let fromCache = false;
+  let isSyncing = false;
+  let editingTaskId = null;
+  let toastFn = null;
+  let bgRefreshTimer = null;
+
+  /* ---------- Helpers seguros de DOM (Anti-XSS) ---------- */
+  function createEl(tag, options, children) {
+    const node = document.createElement(tag);
+    const opts = options || {};
+    if (opts.className) node.className = opts.className;
+    if (opts.text !== undefined && opts.text !== null) node.textContent = String(opts.text);
+    if (opts.type) node.type = opts.type;
+    if (opts.title) node.title = opts.title;
+    if (opts.ariaLabel) node.setAttribute('aria-label', opts.ariaLabel);
+    if (opts.value !== undefined) node.value = String(opts.value);
+    if (opts.href) node.href = opts.href;
+    if (opts.target) node.target = opts.target;
+    if (opts.rel) node.rel = opts.rel;
+    if (opts.attrs) {
+      Object.keys(opts.attrs).forEach((k) => {
+        if (opts.attrs[k] !== undefined && opts.attrs[k] !== null) {
+          node.setAttribute(k, String(opts.attrs[k]));
+        }
+      });
     }
+    if (Array.isArray(children)) {
+      children.forEach((child) => {
+        if (child !== null && child !== undefined) node.appendChild(child);
+      });
+    }
+    return node;
   }
 
-  function saveState() {
+  function clearNode(node) {
+    if (!node) return;
+    while (node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  function safeGithubIssueUrl(rawUrl) {
+    if (!rawUrl || typeof rawUrl !== 'string') return null;
     try {
-      localStorage.setItem(STORAGE_ISSUES_KEY, JSON.stringify(issues));
-      localStorage.setItem(STORAGE_SEQ_KEY, String(nextNumber));
+      const parsed = new URL(rawUrl);
+      if (parsed.protocol === 'https:' && parsed.hostname === 'github.com') {
+        return parsed.toString();
+      }
     } catch (_) {}
+    return null;
   }
 
-  function formatDate() {
+  function formatShortDate(iso) {
+    if (!iso) return 'Agora';
     try {
-      return new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return 'Agora';
+      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
     } catch (_) {
       return 'Agora';
     }
   }
 
-  function updateBadgesAndCounters() {
-    const openCount = issues.filter((i) => i.status !== 'done').length;
-    const doneCount = issues.filter((i) => i.status === 'done').length;
-    const bugCount = issues.filter((i) => i.type === 'bug' && i.status !== 'done').length;
+  function notify(msg) {
+    if (typeof toastFn === 'function') toastFn(msg);
+  }
 
-    const navBadge = document.getElementById('issues-nav-badge');
-    if (navBadge) {
-      navBadge.textContent = String(openCount);
+  function showFormError(msg) {
+    const box = document.getElementById('issue-form-error');
+    if (!box) return;
+    if (!msg) {
+      box.textContent = '';
+      box.classList.add('hidden');
+      return;
+    }
+    box.textContent = msg;
+    box.classList.remove('hidden');
+  }
+
+  /* ---------- Combinação de fila offline + tasks da API ---------- */
+  function filterPendingLocal(pendingList) {
+    return pendingList.filter((item) => {
+      if (moduleFilter && String(item.module || '').toLowerCase() !== moduleFilter) return false;
+      if (statusFilter && String(item.status || 'pending').toLowerCase() !== statusFilter) return false;
+      return true;
+    });
+  }
+
+  function getCombinedVisibleTasks() {
+    const pending = tasksApi ? filterPendingLocal(tasksApi.getPendingSync()) : [];
+    const pendingSorted = pending.slice().reverse();
+    return pendingSorted.concat(serverTasks);
+  }
+
+  /* ---------- Renderização de Status, Placar, Admin e Filtros ---------- */
+  function renderConnectionAndAdmin() {
+    const connPill = document.getElementById('issues-connection-pill');
+    const pendingCount = tasksApi ? tasksApi.getPendingSync().length : 0;
+
+    if (connPill) {
+      clearNode(connPill);
+      const dot = createEl('span', { className: 'w-2 h-2 rounded-full' });
+      let labelText = 'API conectada';
+      if (isSyncing) {
+        connPill.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold bg-ceu-soft text-sky-950 border border-sky-300/70';
+        dot.classList.add('bg-sky-500');
+        labelText = 'Sincronizando…';
+      } else if (fromCache) {
+        connPill.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold bg-sol-soft text-amber-950 border border-amber-300/70';
+        dot.classList.add('bg-amber-500');
+        labelText = pendingCount > 0 ? `Offline (${pendingCount} na fila)` : 'Offline (cache local)';
+      } else {
+        connPill.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold bg-menta-soft text-teal-950 border border-teal-300/70';
+        dot.classList.add('bg-emerald-500');
+        labelText = pendingCount > 0 ? `API online · ${pendingCount} pendente(s)` : 'API online';
+      }
+      connPill.appendChild(dot);
+      connPill.appendChild(document.createTextNode(labelText));
     }
 
-    const nextBadge = document.getElementById('issue-next-number');
-    const submitNum = document.getElementById('issue-submit-num');
-    if (nextBadge) nextBadge.textContent = `#${nextNumber}`;
-    if (submitNum) submitNum.textContent = `#${nextNumber}`;
+    const adminBtn = document.getElementById('issues-admin-btn');
+    if (adminBtn && tasksApi) {
+      const active = tasksApi.isAdminActive();
+      adminBtn.textContent = active ? '🔓 Admin ativo' : '🔐 Admin';
+      adminBtn.title = active
+        ? 'Modo Admin ativo (clique para sair)'
+        : 'Entrar no modo Admin com ADMIN_KEY';
+      adminBtn.className = active
+        ? 'px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-navy text-sol border border-navy shadow-soft transition'
+        : 'px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-white text-navy/70 border border-navy/15 hover:bg-creme-200 transition';
+    }
+  }
+
+  function renderStats() {
+    const pendingQueue = tasksApi ? tasksApi.getPendingSync() : [];
+    const allForCounts = pendingQueue.concat(
+      !statusFilter && !moduleFilter ? serverTasks : (tasksApi ? tasksApi.getCachedTasks() : serverTasks)
+    );
+
+    const openCount = allForCounts.filter((t) => t.status !== 'done').length;
+    const progressCount = allForCounts.filter((t) => t.status === 'in_progress').length;
+    const doneCount = allForCounts.filter((t) => t.status === 'done').length;
+
+    const navBadge = document.getElementById('issues-nav-badge');
+    if (navBadge) navBadge.textContent = String(openCount);
 
     const statsHost = document.getElementById('issues-stats');
-    if (statsHost) {
-      statsHost.innerHTML = `
-        <div class="px-4 py-2.5 rounded-2xl bg-white border border-navy/10 shadow-soft text-sm font-bold flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-          <span>${openCount} ${openCount === 1 ? 'aberta' : 'abertas'}</span>
-        </div>
-        <div class="px-4 py-2.5 rounded-2xl bg-white border border-navy/10 shadow-soft text-sm font-bold flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-          <span>${doneCount} ${doneCount === 1 ? 'resolvida' : 'resolvidas'}</span>
-        </div>
-        <div class="px-4 py-2.5 rounded-2xl bg-white border border-navy/10 shadow-soft text-sm font-bold flex items-center gap-2">
-          <span aria-hidden="true">🐞</span>
-          <span>${bugCount} ${bugCount === 1 ? 'bug aberto' : 'bugs abertos'}</span>
-        </div>
-      `;
+    if (!statsHost) return;
+    clearNode(statsHost);
+
+    const makeStatChip = (dotCls, emoji, text) => {
+      const chip = createEl('div', {
+        className: 'px-3.5 py-2 rounded-2xl bg-white border border-navy/10 shadow-soft text-xs sm:text-sm font-bold flex items-center gap-2',
+      });
+      if (dotCls) {
+        chip.appendChild(createEl('span', { className: `w-2.5 h-2.5 rounded-full ${dotCls}` }));
+      } else if (emoji) {
+        chip.appendChild(createEl('span', { text: emoji, attrs: { 'aria-hidden': 'true' } }));
+      }
+      chip.appendChild(createEl('span', { text }));
+      return chip;
+    };
+
+    statsHost.appendChild(makeStatChip('bg-amber-400', null, `${openCount} ${openCount === 1 ? 'aberta' : 'abertas'}`));
+    if (progressCount > 0) {
+      statsHost.appendChild(makeStatChip('bg-sky-400', null, `${progressCount} em andamento`));
+    }
+    statsHost.appendChild(makeStatChip('bg-emerald-400', null, `${doneCount} ${doneCount === 1 ? 'concluída' : 'concluídas'}`));
+    if (pendingQueue.length > 0) {
+      statsHost.appendChild(makeStatChip(null, '⏳', `${pendingQueue.length} aguardando sync`));
     }
   }
 
   function renderFilterBar() {
     const host = document.getElementById('issues-filter-bar');
     if (!host) return;
+    clearNode(host);
 
     const filters = [
-      { id: 'all', label: 'Todas' },
-      { id: 'open', label: '🟢 Abertas' },
-      { id: 'done', label: '✅ Resolvidas' },
-      { id: 'melhoria', label: '💡 Melhorias' },
-      { id: 'bug', label: '🐞 Bugs' },
-      { id: 'conteudo', label: '📘 Conteúdo' },
+      { id: '', label: 'Todas' },
+      { id: 'pending', label: '🟡 Pendentes' },
+      { id: 'in_progress', label: '🔵 Em andamento' },
+      { id: 'done', label: '✅ Concluídas' },
     ];
 
-    host.innerHTML = filters
-      .map((f) => {
-        const active = f.id === currentFilter;
-        return `
-          <button type="button" data-issue-filter="${f.id}"
-            class="px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition ${
-              active ? 'bg-navy text-white shadow-soft' : 'bg-creme text-navy/75 hover:bg-creme-200'
-            }">
-            ${f.label}
-          </button>
-        `;
-      })
-      .join('');
+    filters.forEach((f) => {
+      const active = f.id === statusFilter;
+      const btn = createEl('button', {
+        type: 'button',
+        text: f.label,
+        className: `px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition ${
+          active ? 'bg-navy text-white shadow-soft' : 'bg-creme text-navy/75 hover:bg-creme-200'
+        }`,
+        attrs: { 'data-issue-status-filter': f.id },
+      });
+      host.appendChild(btn);
+    });
   }
 
-  function getFilteredIssues() {
-    return issues
-      .slice()
-      .sort((a, b) => b.number - a.number)
-      .filter((it) => {
-        if (currentFilter === 'open') return it.status !== 'done';
-        if (currentFilter === 'done') return it.status === 'done';
-        if (['melhoria', 'bug', 'conteudo'].includes(currentFilter)) return it.type === currentFilter;
-        return true;
+  /* ---------- Edição Inline Segura dentro do Card ---------- */
+  function buildInlineEditForm(task) {
+    const form = createEl('form', {
+      className: 'mt-2 pt-3 border-t border-navy/10 flex flex-col gap-3',
+      attrs: { 'data-edit-form-id': task.id },
+    });
+
+    const titleInput = createEl('input', {
+      type: 'text',
+      value: task.title,
+      className: 'w-full px-3.5 py-2.5 rounded-xl bg-creme border border-navy/15 font-semibold text-sm text-navy focus:outline-none focus:ring-2 focus:ring-sol',
+      attrs: { required: 'true', minlength: '5', maxlength: '120', placeholder: 'Título (5 a 120 caracteres)' },
+    });
+
+    const row = createEl('div', { className: 'grid sm:grid-cols-2 gap-2.5' });
+    const modSelect = createEl('select', {
+      className: 'px-3 py-2 rounded-xl bg-creme border border-navy/15 font-semibold text-sm text-navy focus:outline-none focus:ring-2 focus:ring-sol',
+    });
+    ['melhorias', 'bug', 'python', 'html', 'geral'].forEach((m) => {
+      const opt = createEl('option', {
+        value: m,
+        text: (MODULE_META[m] && MODULE_META[m].label) || m,
       });
+      if (task.module === m) opt.selected = true;
+      modSelect.appendChild(opt);
+    });
+
+    const prioSelect = createEl('select', {
+      className: 'px-3 py-2 rounded-xl bg-creme border border-navy/15 font-semibold text-sm text-navy focus:outline-none focus:ring-2 focus:ring-sol',
+    });
+    ['baixa', 'normal', 'alta'].forEach((p) => {
+      const opt = createEl('option', {
+        value: p,
+        text: `Prioridade: ${(PRIORITY_META[p] && PRIORITY_META[p].label) || p}`,
+      });
+      if (task.priority === p) opt.selected = true;
+      prioSelect.appendChild(opt);
+    });
+    row.appendChild(modSelect);
+    row.appendChild(prioSelect);
+
+    const descInput = createEl('textarea', {
+      value: task.description || '',
+      className: 'w-full px-3.5 py-2.5 rounded-xl bg-creme border border-navy/15 font-medium text-sm text-navy focus:outline-none focus:ring-2 focus:ring-sol',
+      attrs: { rows: '3', maxlength: '1000', placeholder: 'Descrição (opcional; se preencher, use 10 a 1000 caracteres)' },
+    });
+
+    const actions = createEl('div', { className: 'flex flex-wrap gap-2 justify-end' });
+    const cancelBtn = createEl('button', {
+      type: 'button',
+      text: 'Cancelar',
+      className: 'btn-soft text-xs py-2 px-3',
+    });
+    cancelBtn.addEventListener('click', () => {
+      editingTaskId = null;
+      renderList();
+    });
+
+    const saveBtn = createEl('button', {
+      type: 'submit',
+      text: '💾 Salvar alterações',
+      className: 'btn-primary text-xs py-2 px-4',
+    });
+    actions.appendChild(cancelBtn);
+    actions.appendChild(saveBtn);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newTitle = titleInput.value.trim();
+      const newDesc = descInput.value.trim();
+      if (newTitle.length < 5 || newTitle.length > 120) {
+        notify('⚠️ O título precisa ter entre 5 e 120 caracteres.');
+        return;
+      }
+      if (newDesc && (newDesc.length < 10 || newDesc.length > 1000)) {
+        notify('⚠️ A descrição (quando preenchida) deve ter entre 10 e 1000 caracteres.');
+        return;
+      }
+      saveBtn.disabled = true;
+      const res = await tasksApi.updateTask(task.id, {
+        title: newTitle,
+        module: modSelect.value,
+        priority: prioSelect.value,
+        description: newDesc,
+      });
+      saveBtn.disabled = false;
+      if (!res.ok) {
+        notify(`⚠️ ${res.message}`);
+        return;
+      }
+      editingTaskId = null;
+      serverTasks = serverTasks.map((t) => (t.id === res.task.id ? res.task : t));
+      notify('✅ Task atualizada!');
+      renderList();
+    });
+
+    form.appendChild(titleInput);
+    form.appendChild(row);
+    form.appendChild(descInput);
+    form.appendChild(actions);
+    return form;
+  }
+
+  /* ---------- Card de Task (100% Anti-XSS) ---------- */
+  function buildTaskCard(item) {
+    const isPendingSync = Boolean(item.pendingSync);
+    const isDone = item.status === 'done';
+    const modMeta = MODULE_META[item.module] || {
+      label: item.module || 'geral',
+      cls: 'badge bg-creme text-navy/80 border border-navy/10',
+    };
+    const prioMeta = PRIORITY_META[item.priority] || PRIORITY_META.normal;
+    const stMeta = STATUS_META[item.status] || STATUS_META.pending;
+    const canManage = tasksApi ? tasksApi.canManageTask(item) : false;
+    const isOwned = !isPendingSync && tasksApi && tasksApi.isOwnedTask(item.id);
+    const safeGithubUrl = safeGithubIssueUrl(item.github_issue_url);
+
+    let borderCls = 'border-navy/10';
+    if (isPendingSync) borderCls = 'border-amber-300 bg-amber-50/40';
+    else if (isDone) borderCls = 'border-emerald-300/80 opacity-85';
+
+    const card = createEl('article', {
+      className: `rounded-3xl bg-white border ${borderCls} p-5 sm:p-6 shadow-soft flex flex-col gap-3 fade-in`,
+    });
+
+    // Cabeçalho com badges
+    const head = createEl('div', { className: 'flex flex-wrap items-center justify-between gap-2' });
+    const badgesWrap = createEl('div', { className: 'flex flex-wrap items-center gap-1.5' });
+
+    badgesWrap.appendChild(createEl('span', { className: modMeta.cls, text: modMeta.label }));
+    badgesWrap.appendChild(createEl('span', { className: prioMeta.cls, text: prioMeta.label }));
+
+    if (isPendingSync) {
+      badgesWrap.appendChild(
+        createEl('span', {
+          className: 'badge bg-sol-soft text-amber-950 border border-amber-300',
+          text: '⏳ Aguardando sincronização',
+        })
+      );
+    } else {
+      badgesWrap.appendChild(createEl('span', { className: stMeta.cls, text: stMeta.label }));
+    }
+
+    if (isOwned) {
+      badgesWrap.appendChild(
+        createEl('span', {
+          className: 'badge bg-lavanda-soft text-indigo-950 border border-indigo-200',
+          text: '👤 Sua task',
+        })
+      );
+    }
+
+    if (safeGithubUrl) {
+      const ghLink = createEl('a', {
+        href: safeGithubUrl,
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        className: 'badge bg-navy text-white hover:bg-navy-800 transition no-underline',
+        text: item.github_issue_number ? `GitHub #${item.github_issue_number} ↗` : 'GitHub Issue ↗',
+        title: 'Abrir Issue correspondente no GitHub',
+      });
+      badgesWrap.appendChild(ghLink);
+    }
+
+    const dateLabel = createEl('span', {
+      className: 'text-xs font-semibold text-navy/45',
+      text: formatShortDate(item.created_at),
+    });
+
+    head.appendChild(badgesWrap);
+    head.appendChild(dateLabel);
+    card.appendChild(head);
+
+    // Conteúdo textual (exclusivamente textContent)
+    const titleEl = createEl('h3', {
+      className: `font-display font-extrabold text-lg sm:text-xl text-navy ${isDone ? 'line-through opacity-75' : ''}`,
+      text: item.title,
+    });
+    card.appendChild(titleEl);
+
+    if (item.description) {
+      const descEl = createEl('p', {
+        className: 'text-navy/75 text-sm sm:text-base leading-relaxed whitespace-pre-line',
+        text: item.description,
+      });
+      card.appendChild(descEl);
+    }
+
+    // Edição inline aberta
+    if (editingTaskId === item.id && canManage) {
+      card.appendChild(buildInlineEditForm(item));
+      return card;
+    }
+
+    // Rodapé de ações
+    if (isPendingSync) {
+      const footer = createEl('div', {
+        className: 'pt-2.5 border-t border-amber-200/70 flex flex-wrap items-center justify-between gap-2',
+      });
+      footer.appendChild(
+        createEl('span', {
+          className: 'text-xs font-semibold text-amber-900',
+          text: 'Será enviada automaticamente quando a conexão voltar.',
+        })
+      );
+
+      const btns = createEl('div', { className: 'flex items-center gap-2' });
+      const retryBtn = createEl('button', {
+        type: 'button',
+        text: '🔄 Reenviar',
+        className: 'px-3 py-1.5 rounded-xl bg-sol-soft hover:bg-sol text-navy text-xs font-extrabold border border-amber-300/80 transition',
+      });
+      retryBtn.addEventListener('click', async () => {
+        await handleSyncAndRefresh(false);
+      });
+
+      const removeLocalBtn = createEl('button', {
+        type: 'button',
+        text: '🗑️ Remover',
+        className: 'px-2.5 py-1.5 rounded-xl text-xs font-bold text-navy/60 hover:text-red-700 hover:bg-coral-soft transition',
+        title: 'Remover da fila offline',
+      });
+      removeLocalBtn.addEventListener('click', async () => {
+        await tasksApi.deleteTask(item.tempId || item.id);
+        notify('🗑️ Item removido da fila offline.');
+        renderList();
+      });
+
+      btns.appendChild(retryBtn);
+      btns.appendChild(removeLocalBtn);
+      footer.appendChild(btns);
+      card.appendChild(footer);
+    } else if (canManage) {
+      const footer = createEl('div', {
+        className: 'pt-2.5 border-t border-navy/5 flex flex-wrap items-center justify-between gap-2',
+      });
+
+      const statusWrap = createEl('div', { className: 'flex items-center gap-2' });
+      const statusLabel = createEl('span', {
+        className: 'text-xs font-bold text-navy/55',
+        text: 'Status:',
+      });
+      const statusSelect = createEl('select', {
+        className: 'px-2.5 py-1.5 rounded-xl bg-creme border border-navy/10 text-xs font-extrabold text-navy focus:outline-none focus:ring-2 focus:ring-sol',
+        ariaLabel: 'Alterar status da task',
+      });
+      [
+        { value: 'pending', label: '🟡 Pendente' },
+        { value: 'in_progress', label: '🔵 Em andamento' },
+        { value: 'done', label: '✅ Concluída' },
+      ].forEach((optItem) => {
+        const opt = createEl('option', { value: optItem.value, text: optItem.label });
+        if (item.status === optItem.value) opt.selected = true;
+        statusSelect.appendChild(opt);
+      });
+
+      statusSelect.addEventListener('change', async () => {
+        const nextStatus = statusSelect.value;
+        statusSelect.disabled = true;
+        const res = await tasksApi.updateTask(item.id, { status: nextStatus });
+        statusSelect.disabled = false;
+        if (!res.ok) {
+          statusSelect.value = item.status;
+          notify(`⚠️ ${res.message}`);
+          return;
+        }
+        serverTasks = serverTasks.map((t) => (t.id === res.task.id ? res.task : t));
+        notify(nextStatus === 'done' ? '✅ Task concluída!' : '🔄 Status atualizado!');
+        renderList();
+      });
+
+      statusWrap.appendChild(statusLabel);
+      statusWrap.appendChild(statusSelect);
+      footer.appendChild(statusWrap);
+
+      const btns = createEl('div', { className: 'flex items-center gap-2' });
+      const editBtn = createEl('button', {
+        type: 'button',
+        text: '✏️ Editar',
+        className: 'px-3 py-1.5 rounded-xl bg-creme hover:bg-creme-200 border border-navy/10 text-xs font-extrabold text-navy transition',
+      });
+      editBtn.addEventListener('click', () => {
+        editingTaskId = item.id;
+        renderList();
+      });
+
+      const delBtn = createEl('button', {
+        type: 'button',
+        text: '🗑️ Excluir',
+        className: 'px-3 py-1.5 rounded-xl text-xs font-extrabold text-navy/60 hover:text-red-700 hover:bg-coral-soft transition',
+      });
+      delBtn.addEventListener('click', async () => {
+        if (!window.confirm(`Deseja excluir a task "${item.title}"?`)) return;
+        delBtn.disabled = true;
+        const res = await tasksApi.deleteTask(item.id);
+        if (!res.ok) {
+          delBtn.disabled = false;
+          notify(`⚠️ ${res.message}`);
+          return;
+        }
+        serverTasks = serverTasks.filter((t) => t.id !== item.id);
+        if (editingTaskId === item.id) editingTaskId = null;
+        notify('🗑️ Task excluída.');
+        renderList();
+      });
+
+      btns.appendChild(editBtn);
+      btns.appendChild(delBtn);
+      footer.appendChild(btns);
+      card.appendChild(footer);
+    }
+
+    return card;
   }
 
   function renderList() {
-    updateBadgesAndCounters();
+    renderConnectionAndAdmin();
+    renderStats();
     renderFilterBar();
 
     const listHost = document.getElementById('issues-list');
     const emptyHost = document.getElementById('issues-empty');
     if (!listHost) return;
+    clearNode(listHost);
 
-    const filtered = getFilteredIssues();
-    if (!filtered.length) {
-      listHost.innerHTML = '';
+    const combined = getCombinedVisibleTasks();
+    if (!combined.length) {
       if (emptyHost) emptyHost.classList.remove('hidden');
       return;
     }
     if (emptyHost) emptyHost.classList.add('hidden');
 
-    listHost.innerHTML = filtered
-      .map((item) => {
-        const meta = TYPE_META[item.type] || TYPE_META.melhoria;
-        const isDone = item.status === 'done';
-        return `
-          <article class="rounded-3xl bg-white border ${
-            isDone ? 'border-emerald-300/80 opacity-85' : 'border-navy/10'
-          } p-5 sm:p-6 shadow-soft flex flex-col gap-3 fade-in">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div class="flex flex-wrap items-center gap-2">
-                <span class="font-mono font-extrabold text-sm px-2.5 py-1 rounded-lg bg-navy text-sol">
-                  #${item.number}
-                </span>
-                <span class="badge ${meta.badge}">${meta.label}</span>
-                <span class="badge bg-creme text-navy/75 border border-navy/10">${escapeHtml(item.area || 'Geral')}</span>
-                ${
-                  isDone
-                    ? '<span class="badge bg-menta-soft text-teal-950 border border-teal-300/70">✅ Resolvida</span>'
-                    : '<span class="badge bg-amber-100/80 text-amber-900">🟢 Aberta</span>'
-                }
-              </div>
-              <span class="text-xs font-semibold text-navy/45">
-                por ${escapeHtml(item.author || 'Anônimo')} · ${escapeHtml(item.createdAt || 'Hoje')}
-              </span>
-            </div>
-
-            <h3 class="font-display font-extrabold text-lg sm:text-xl text-navy ${isDone ? 'line-through opacity-75' : ''}">
-              ${escapeHtml(item.title)}
-            </h3>
-
-            <p class="text-navy/75 text-sm sm:text-base leading-relaxed whitespace-pre-line">${escapeHtml(item.desc)}</p>
-
-            <div class="pt-2 border-t border-navy/5 flex flex-wrap items-center justify-between gap-2">
-              <button type="button" data-issue-vote="${item.number}"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-creme hover:bg-sol-soft border border-navy/10 text-xs font-extrabold text-navy transition"
-                title="Apoiar esta ideia ou confirmar este bug">
-                👍 Apoiar <span class="font-mono">(${Number(item.votes) || 0})</span>
-              </button>
-
-              <div class="flex items-center gap-2">
-                <button type="button" data-issue-toggle="${item.number}"
-                  class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition ${
-                    isDone
-                      ? 'bg-creme text-navy hover:bg-creme-200 border border-navy/10'
-                      : 'bg-menta-soft text-teal-950 hover:bg-menta border border-teal-300/70'
-                  }">
-                  ${isDone ? '↩ Reabrir' : '✓ Marcar como resolvida'}
-                </button>
-                <button type="button" data-issue-delete="${item.number}"
-                  class="px-2.5 py-1.5 rounded-xl text-xs font-bold text-navy/45 hover:text-red-700 hover:bg-coral-soft transition"
-                  title="Excluir task #${item.number}" aria-label="Excluir task #${item.number}">
-                  🗑️
-                </button>
-              </div>
-            </div>
-          </article>
-        `;
-      })
-      .join('');
+    const frag = document.createDocumentFragment();
+    combined.forEach((item) => {
+      frag.appendChild(buildTaskCard(item));
+    });
+    listHost.appendChild(frag);
   }
 
-  function addIssue({ type, area, author, title, desc }) {
-    const number = nextNumber++;
-    const item = {
-      number,
-      type: type || 'melhoria',
-      area: area || 'Geral',
-      author: (author || '').trim() || 'Anônimo',
-      title: title.trim(),
-      desc: desc.trim(),
-      status: 'open',
-      votes: 1,
-      createdAt: formatDate(),
-    };
-    issues.push(item);
-    saveState();
-    currentFilter = 'all';
+  /* ---------- Carregamento & Sincronização ---------- */
+  async function loadTasksFromApi() {
+    if (!tasksApi) return;
+    const result = await tasksApi.fetchTasks({
+      module: moduleFilter || undefined,
+      status: statusFilter || undefined,
+    });
+    serverTasks = result.tasks || [];
+    fromCache = Boolean(result.fromCache);
     renderList();
-    return item;
+  }
+
+  async function handleSyncAndRefresh(silent) {
+    if (!tasksApi) return;
+    isSyncing = true;
+    renderConnectionAndAdmin();
+    try {
+      const syncRes = await tasksApi.syncPendingTasks();
+      if (!silent && syncRes.syncedCount > 0) {
+        notify(`✅ ${syncRes.syncedCount} task(s) da fila offline sincronizada(s)!`);
+      }
+      await loadTasksFromApi();
+    } finally {
+      isSyncing = false;
+      renderConnectionAndAdmin();
+    }
   }
 
   function exportMarkdown() {
-    if (!issues.length) return '# Melhorias & Bugs\n\nNenhuma task registrada.';
-    const lines = ['# 💡 Melhorias & Bugs — Tecnologia para Todos\n'];
-    issues
-      .slice()
-      .sort((a, b) => a.number - b.number)
-      .forEach((it) => {
-        const mark = it.status === 'done' ? 'x' : ' ';
-        const meta = (TYPE_META[it.type] && TYPE_META[it.type].label) || it.type;
-        lines.push(`- [${mark}] **#${it.number}** [${meta} · ${it.area}] **${it.title}** — ${it.desc} *(por ${it.author}, 👍 ${it.votes || 0})*`);
-      });
+    const combined = getCombinedVisibleTasks();
+    if (!combined.length) return '# Melhorias & Tasks — Tecnologia para Todos\n\nNenhuma task registrada.';
+    const lines = ['# 💡 Melhorias & Tasks — Tecnologia para Todos\n'];
+    combined.forEach((it) => {
+      const mark = it.status === 'done' ? 'x' : ' ';
+      const gh = it.github_issue_number ? ` (GitHub #${it.github_issue_number})` : '';
+      const desc = it.description ? ` — ${it.description}` : '';
+      lines.push(`- [${mark}] [${it.module} · ${it.priority}] **${it.title}**${desc}${gh}`);
+    });
     return lines.join('\n');
   }
 
+  /* ---------- Inicialização ---------- */
   function init(notifyToast) {
-    loadState();
-    renderList();
+    toastFn = notifyToast;
+
+    if (tasksApi) {
+      tasksApi.getClientId();
+      tasksApi.onSyncUpdate(async (summary) => {
+        if (summary && summary.syncedCount > 0) {
+          notify(`✅ ${summary.syncedCount} task(s) offline sincronizada(s) com o servidor!`);
+        }
+        await loadTasksFromApi();
+      });
+    }
+
+    const titleInput = document.getElementById('issue-title');
+    const titleCount = document.getElementById('issue-title-count');
+    if (titleInput && titleCount) {
+      const updateCounter = () => {
+        titleCount.textContent = `${titleInput.value.trim().length}/120`;
+      };
+      titleInput.addEventListener('input', updateCounter);
+      updateCounter();
+    }
 
     const form = document.getElementById('issue-form');
-    if (form) {
-      form.addEventListener('submit', (e) => {
+    if (form && tasksApi) {
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const typeInput = form.querySelector('input[name="issue-type"]:checked');
-        const areaInput = document.getElementById('issue-area');
-        const authorInput = document.getElementById('issue-author');
-        const titleInput = document.getElementById('issue-title');
+        showFormError('');
+
+        const modInput = form.querySelector('input[name="issue-module"]:checked');
+        const prioInput = document.getElementById('issue-priority');
         const descInput = document.getElementById('issue-desc');
+        const submitBtn = document.getElementById('issue-submit-btn');
 
         const title = (titleInput && titleInput.value.trim()) || '';
         const desc = (descInput && descInput.value.trim()) || '';
-        if (!title || !desc) return;
+        const moduleVal = modInput ? modInput.value : 'melhorias';
+        const priorityVal = prioInput ? prioInput.value : 'normal';
 
-        const created = addIssue({
-          type: typeInput ? typeInput.value : 'melhoria',
-          area: areaInput ? areaInput.value : 'Geral',
-          author: authorInput ? authorInput.value : '',
+        if (title.length < 5 || title.length > 120) {
+          showFormError('O título precisa ter entre 5 e 120 caracteres.');
+          if (titleInput) titleInput.focus();
+          return;
+        }
+        if (desc && (desc.length < 10 || desc.length > 1000)) {
+          showFormError('Se preencher a descrição, escreva entre 10 e 1000 caracteres (ou deixe em branco).');
+          if (descInput) descInput.focus();
+          return;
+        }
+
+        if (submitBtn) submitBtn.disabled = true;
+        const res = await tasksApi.createTask({
           title,
-          desc,
+          module: moduleVal,
+          description: desc,
+          priority: priorityVal,
         });
+        if (submitBtn) submitBtn.disabled = false;
+
+        if (!res.ok) {
+          showFormError(res.message || 'Não foi possível criar a task.');
+          notify(`⚠️ ${res.message || 'Erro ao enviar task.'}`);
+          return;
+        }
 
         if (titleInput) titleInput.value = '';
         if (descInput) descInput.value = '';
-        if (notifyToast) notifyToast(`🎉 Task #${created.number} criada com sucesso!`);
+        if (titleCount) titleCount.textContent = '0/120';
+
+        if (res.queued) {
+          notify('⏳ Sem conexão: task salva na fila e será enviada ao reconectar!');
+          renderList();
+        } else {
+          notify('🎉 Task criada! Sincronizando com o GitHub…');
+          await loadTasksFromApi();
+          clearTimeout(bgRefreshTimer);
+          bgRefreshTimer = setTimeout(() => {
+            loadTasksFromApi();
+          }, 2500);
+        }
+      });
+    }
+
+    const adminBtn = document.getElementById('issues-admin-btn');
+    if (adminBtn && tasksApi) {
+      adminBtn.addEventListener('click', () => {
+        if (tasksApi.isAdminActive()) {
+          if (window.confirm('Deseja desativar o Modo Admin neste navegador?')) {
+            tasksApi.clearAdminKey();
+            editingTaskId = null;
+            renderList();
+            notify('🔒 Modo Admin desativado.');
+          }
+          return;
+        }
+        const key = window.prompt('Digite a chave de administrador (ADMIN_KEY):');
+        if (key && key.trim()) {
+          tasksApi.setAdminKey(key.trim());
+          renderList();
+          notify('🔓 Modo Admin ativado!');
+        }
+      });
+    }
+
+    const modFilterEl = document.getElementById('issues-module-filter');
+    if (modFilterEl) {
+      modFilterEl.addEventListener('change', async () => {
+        moduleFilter = modFilterEl.value || '';
+        await loadTasksFromApi();
+      });
+    }
+
+    const refreshBtn = document.getElementById('issues-refresh-btn');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', async () => {
+        await handleSyncAndRefresh(false);
+        notify('🔄 Lista atualizada.');
       });
     }
 
@@ -306,57 +743,27 @@
         const md = exportMarkdown();
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(md).then(() => {
-            if (notifyToast) notifyToast('📋 Lista de tasks (#) copiada em Markdown!');
+            notify('📋 Lista de tasks copiada em Markdown!');
           });
         }
       });
     }
 
-    document.addEventListener('click', (e) => {
-      const filterBtn = e.target.closest('[data-issue-filter]');
+    document.addEventListener('click', async (e) => {
+      const filterBtn = e.target.closest('[data-issue-status-filter]');
       if (filterBtn) {
-        currentFilter = filterBtn.getAttribute('data-issue-filter') || 'all';
-        renderList();
-        return;
-      }
-
-      const voteBtn = e.target.closest('[data-issue-vote]');
-      if (voteBtn) {
-        const num = Number(voteBtn.getAttribute('data-issue-vote'));
-        const target = issues.find((i) => i.number === num);
-        if (target) {
-          target.votes = (Number(target.votes) || 0) + 1;
-          saveState();
-          renderList();
-        }
-        return;
-      }
-
-      const toggleBtn = e.target.closest('[data-issue-toggle]');
-      if (toggleBtn) {
-        const num = Number(toggleBtn.getAttribute('data-issue-toggle'));
-        const target = issues.find((i) => i.number === num);
-        if (target) {
-          target.status = target.status === 'done' ? 'open' : 'done';
-          saveState();
-          renderList();
-          if (notifyToast) {
-            notifyToast(target.status === 'done' ? `✅ Task #${num} marcada como resolvida!` : `↩ Task #${num} reaberta.`);
-          }
-        }
-        return;
-      }
-
-      const delBtn = e.target.closest('[data-issue-delete]');
-      if (delBtn) {
-        const num = Number(delBtn.getAttribute('data-issue-delete'));
-        issues = issues.filter((i) => i.number !== num);
-        saveState();
-        renderList();
-        if (notifyToast) notifyToast(`🗑️ Task #${num} removida.`);
+        statusFilter = filterBtn.getAttribute('data-issue-status-filter') || '';
+        await loadTasksFromApi();
       }
     });
+
+    renderList();
+    handleSyncAndRefresh(true);
   }
 
-  TPT.issues = { init, renderList };
+  function onActivate() {
+    handleSyncAndRefresh(true);
+  }
+
+  TPT.issues = { init, onActivate, renderList };
 })();

@@ -1,0 +1,18 @@
+[Unit]
+Description=Tecnologia para Todos - Tasks API (FastAPI + SQLite WAL)
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=%h/tpt-tasks-api
+Environment=PYTHONUNBUFFERED=1
+ExecStart=%h/tpt-tasks-api/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 3050
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target
