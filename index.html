@@ -408,8 +408,16 @@
             Melhorias &amp; Bugs <span aria-hidden="true">💡</span>
           </h1>
           <p class="mt-3 text-lg text-navy/70 max-w-2xl">
-            Teve uma ideia de aula, achou algo confuso ou encontrou um erro? Crie uma task abaixo — cada registro ganha um número <strong class="font-mono text-navy">#1, #2, #3…</strong> para acompanharmos a evolução da plataforma.
+            Teve uma ideia de aula, achou algo confuso ou encontrou um erro? Registre uma task abaixo — elas ficam centralizadas no nosso servidor e abrem Issues automaticamente no GitHub.
           </p>
+          <div class="mt-4 flex flex-wrap items-center gap-2.5">
+            <span id="issues-connection-pill" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold bg-creme-200 text-navy/70 border border-navy/10">
+              Conectando…
+            </span>
+            <button type="button" id="issues-admin-btn" class="px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-white text-navy/70 border border-navy/15 hover:bg-creme-200 transition" title="Entrar no modo Admin com ADMIN_KEY">
+              🔐 Admin
+            </button>
+          </div>
         </div>
 
         <!-- Placar rápido -->
@@ -417,84 +425,98 @@
       </div>
 
       <div class="grid gap-8 lg:grid-cols-12 items-start">
-        <!-- Formulário simples de nova issue -->
+        <!-- Formulário simples de nova task -->
         <form id="issue-form" class="lg:col-span-5 rounded-3xl bg-white border border-navy/10 p-6 sm:p-7 shadow-soft flex flex-col gap-4 lg:sticky lg:top-24">
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between gap-2">
             <h2 class="font-display font-extrabold text-xl text-navy">Nova sugestão ou bug</h2>
-            <span id="issue-next-number" class="font-mono font-extrabold text-sm px-3 py-1 rounded-full bg-navy text-sol">#1</span>
+            <span class="font-mono font-bold text-xs px-2.5 py-1 rounded-full bg-creme text-navy/70 border border-navy/10">Sync GitHub</span>
           </div>
 
-          <!-- Tipo -->
+          <!-- Módulo -->
           <fieldset>
-            <legend class="block text-xs font-extrabold uppercase tracking-wider text-navy/60 mb-2">O que você quer registrar?</legend>
-            <div class="grid grid-cols-3 gap-2">
+            <legend class="block text-xs font-extrabold uppercase tracking-wider text-navy/60 mb-2">Módulo / Assunto</legend>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <label class="issue-type-option">
-                <input type="radio" name="issue-type" value="melhoria" class="sr-only" checked />
+                <input type="radio" name="issue-module" value="melhorias" class="sr-only" checked />
                 <span class="issue-type-pill">💡 Melhoria</span>
               </label>
               <label class="issue-type-option">
-                <input type="radio" name="issue-type" value="bug" class="sr-only" />
+                <input type="radio" name="issue-module" value="bug" class="sr-only" />
                 <span class="issue-type-pill">🐞 Bug / Erro</span>
               </label>
               <label class="issue-type-option">
-                <input type="radio" name="issue-type" value="conteudo" class="sr-only" />
-                <span class="issue-type-pill">📘 Nova Aula</span>
+                <input type="radio" name="issue-module" value="python" class="sr-only" />
+                <span class="issue-type-pill">🐍 Python</span>
+              </label>
+              <label class="issue-type-option">
+                <input type="radio" name="issue-module" value="html" class="sr-only" />
+                <span class="issue-type-pill">🌐 HTML/CSS</span>
+              </label>
+              <label class="issue-type-option sm:col-span-2">
+                <input type="radio" name="issue-module" value="geral" class="sr-only" />
+                <span class="issue-type-pill">🏠 Geral / Plataforma</span>
               </label>
             </div>
           </fieldset>
 
-          <!-- Onde -->
-          <div class="grid sm:grid-cols-2 gap-3">
-            <label class="block">
-              <span class="block text-xs font-extrabold uppercase tracking-wider text-navy/60 mb-1.5">Onde?</span>
-              <select id="issue-area" class="w-full px-3.5 py-2.5 rounded-xl bg-creme border border-navy/10 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-sol">
-                <option value="Geral">🏠 Geral / Página Inicial</option>
-                <option value="Aula 1">📘 Aula 1 (Primeiros Passos)</option>
-                <option value="Aula 2">📘 Aula 2 (Listas e Repetições)</option>
-                <option value="Glossário">📖 Glossário</option>
-                <option value="Playground">💻 Playground / Console</option>
-              </select>
-            </label>
-
-            <label class="block">
-              <span class="block text-xs font-extrabold uppercase tracking-wider text-navy/60 mb-1.5">Seu nome (opcional)</span>
-              <input id="issue-author" type="text" maxlength="50" placeholder="Ex.: Maria, Anônimo…"
-                class="w-full px-3.5 py-2.5 rounded-xl bg-creme border border-navy/10 font-medium text-sm placeholder:text-navy/40 focus:outline-none focus:ring-2 focus:ring-sol" />
-            </label>
-          </div>
+          <!-- Prioridade -->
+          <label class="block">
+            <span class="block text-xs font-extrabold uppercase tracking-wider text-navy/60 mb-1.5">Prioridade</span>
+            <select id="issue-priority" class="w-full px-3.5 py-2.5 rounded-xl bg-creme border border-navy/10 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-sol">
+              <option value="baixa">Baixa — quando der</option>
+              <option value="normal" selected>Normal — sugestão ou ajuste</option>
+              <option value="alta">🔥 Alta — atrapalha o estudo</option>
+            </select>
+          </label>
 
           <!-- Título -->
           <label class="block">
-            <span class="block text-xs font-extrabold uppercase tracking-wider text-navy/60 mb-1.5">Título curto *</span>
-            <input id="issue-title" type="text" required maxlength="100"
+            <span class="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-navy/60 mb-1.5">
+              <span>Título curto * (5 a 120 caracteres)</span>
+              <span id="issue-title-count" class="font-mono text-[11px] text-navy/45">0/120</span>
+            </span>
+            <input id="issue-title" type="text" required minlength="5" maxlength="120"
               placeholder="Ex.: Adicionar mais exercícios de while"
               class="w-full px-4 py-3 rounded-xl bg-creme border border-navy/10 font-semibold text-base placeholder:text-navy/40 focus:outline-none focus:ring-2 focus:ring-sol" />
           </label>
 
           <!-- Descrição -->
           <label class="block">
-            <span class="block text-xs font-extrabold uppercase tracking-wider text-navy/60 mb-1.5">Explicação simples *</span>
-            <textarea id="issue-desc" rows="4" required maxlength="1000"
+            <span class="block text-xs font-extrabold uppercase tracking-wider text-navy/60 mb-1.5">Explicação (opcional · 10 a 1.000 caracteres se preenchida)</span>
+            <textarea id="issue-desc" rows="4" maxlength="1000"
               placeholder="Conte com suas palavras: o que aconteceu ou como podemos melhorar?"
               class="w-full px-4 py-3 rounded-xl bg-creme border border-navy/10 font-medium text-sm leading-relaxed placeholder:text-navy/40 focus:outline-none focus:ring-2 focus:ring-sol"></textarea>
           </label>
 
-          <button type="submit" class="btn-primary w-full py-3.5 text-base">
-            ➕ Criar Task <span id="issue-submit-num" class="font-mono text-sol">#1</span>
+          <div id="issue-form-error" role="alert" class="hidden rounded-xl bg-coral-soft border border-red-300 px-3.5 py-2.5 text-xs font-bold text-red-950"></div>
+
+          <button type="submit" id="issue-submit-btn" class="btn-primary w-full py-3.5 text-base">
+            ➕ Enviar Task
           </button>
 
           <p class="text-xs text-navy/55 leading-relaxed">
-            💾 As tasks ficam salvas neste navegador e você também pode copiar ou exportar todas com 1 clique.
+            🛡️ Se você estiver sem internet no momento, a task fica salva na fila offline e é enviada automaticamente ao reconectar.
           </p>
         </form>
 
-        <!-- Lista de Issues (#1, #2, #3...) -->
+        <!-- Lista de Tasks -->
         <div class="lg:col-span-7 flex flex-col gap-4">
-          <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-navy/10 shadow-soft">
-            <div id="issues-filter-bar" class="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar tasks"></div>
-            <div class="flex items-center gap-2 ml-auto">
-              <button type="button" id="issues-copy-md" class="btn-soft text-xs py-2 px-3" title="Copiar lista em formato Markdown (para colar no GitHub)">
-                📋 Copiar lista (.md)
+          <div class="flex flex-wrap items-center justify-between gap-2.5 bg-white p-3.5 rounded-2xl border border-navy/10 shadow-soft">
+            <div id="issues-filter-bar" class="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por status"></div>
+            <div class="flex flex-wrap items-center gap-2 ml-auto">
+              <select id="issues-module-filter" aria-label="Filtrar por módulo" class="px-3 py-1.5 rounded-xl bg-creme border border-navy/10 text-xs font-extrabold text-navy focus:outline-none focus:ring-2 focus:ring-sol">
+                <option value="">Todos módulos</option>
+                <option value="melhorias">💡 Melhoria</option>
+                <option value="bug">🐞 Bug</option>
+                <option value="python">🐍 Python</option>
+                <option value="html">🌐 HTML/CSS</option>
+                <option value="geral">🏠 Geral</option>
+              </select>
+              <button type="button" id="issues-refresh-btn" class="btn-soft text-xs py-2 px-3" title="Sincronizar e atualizar lista">
+                🔄 Atualizar
+              </button>
+              <button type="button" id="issues-copy-md" class="btn-soft text-xs py-2 px-3" title="Copiar lista em formato Markdown">
+                📋 Copiar (.md)
               </button>
             </div>
           </div>
@@ -503,8 +525,8 @@
 
           <div id="issues-empty" class="hidden rounded-3xl bg-white border border-navy/10 p-12 text-center shadow-soft">
             <div class="text-4xl mb-2" aria-hidden="true">✨</div>
-            <p class="font-display font-bold text-lg text-navy">Nenhuma task neste filtro</p>
-            <p class="text-sm text-navy/60 mt-1">Use o formulário ao lado para criar a próxima task numerada.</p>
+            <p class="font-display font-bold text-lg text-navy">Nenhuma task encontrada</p>
+            <p class="text-sm text-navy/60 mt-1">Use o formulário ao lado para enviar uma sugestão ou relatar um bug.</p>
           </div>
         </div>
       </div>
@@ -527,6 +549,7 @@
   <script src="js/highlight.js"></script>
   <script src="js/pyodide-worker.js"></script>
   <script src="js/playground.js"></script>
+  <script src="js/tasks-api.js"></script>
   <script src="js/issues.js"></script>
   <script src="js/app.js"></script>
 </body>
