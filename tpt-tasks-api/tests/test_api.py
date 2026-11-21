@@ -169,11 +169,11 @@ def test_list_tasks_filters_and_hides_owner_id(tmp_path: Path) -> None:
     )
     assert t2.status_code == 201
 
-    # Atualiza t1 para done
+    # Atualiza t1 para done (somente admin pode alterar status)
     patch_resp = client.patch(
         f"/api/tasks/{t1.json()['id']}",
         json={"status": "done"},
-        headers=c1,
+        headers={"X-Admin-Key": "super-secret-admin-key"},
     )
     assert patch_resp.status_code == 200
     assert "owner_id" not in patch_resp.json()
@@ -213,18 +213,31 @@ def test_ownership_and_admin_authorization(tmp_path: Path) -> None:
     assert client.patch(f"/api/tasks/{task_id}", json={"status": "in_progress"}).status_code == 403
     assert client.delete(f"/api/tasks/{task_id}").status_code == 403
 
-    # Criador consegue editar
-    r_owner = client.patch(f"/api/tasks/{task_id}", json={"status": "in_progress"}, headers=owner_headers)
-    assert r_owner.status_code == 200
-    assert r_owner.json()["status"] == "in_progress"
+    # Criador não pode alterar status (exclusivo do Admin), mas pode editar título/prioridade
+    r_owner_status = client.patch(
+        f"/api/tasks/{task_id}",
+        json={"status": "in_progress"},
+        headers=owner_headers,
+    )
+    assert r_owner_status.status_code == 403
 
-    # Admin consegue editar e deletar task de qualquer criador
+    r_owner_edit = client.patch(
+        f"/api/tasks/{task_id}",
+        json={"title": "Corrigir contraste no botão do topo", "priority": "alta"},
+        headers=owner_headers,
+    )
+    assert r_owner_edit.status_code == 200
+    assert r_owner_edit.json()["title"] == "Corrigir contraste no botão do topo"
+    assert r_owner_edit.json()["priority"] == "alta"
+
+    # Admin consegue alterar status, editar e deletar task de qualquer criador
     r_admin = client.patch(
         f"/api/tasks/{task_id}",
-        json={"title": "Corrigir contraste no botão principal"},
+        json={"status": "in_progress", "title": "Corrigir contraste no botão principal"},
         headers=admin_headers,
     )
     assert r_admin.status_code == 200
+    assert r_admin.json()["status"] == "in_progress"
     assert r_admin.json()["title"] == "Corrigir contraste no botão principal"
 
     assert client.delete(f"/api/tasks/{task_id}", headers=admin_headers).status_code == 200
@@ -305,8 +318,14 @@ def test_github_issue_sync_create_and_close(tmp_path: Path) -> None:
         assert calls[0]["json"]["title"] == "[Task - python] Adicionar exemplos de dicionários"
         assert calls[0]["json"]["labels"] == ["platform-task", "python"]
 
-        # Marcar como done deve fechar a Issue no GitHub
-        done_resp = client.patch(f"/api/tasks/{task_id}", json={"status": "done"}, headers=owner_headers)
+        # Criador não pode marcar como done (não fecha a Issue no GitHub)
+        owner_done = client.patch(f"/api/tasks/{task_id}", json={"status": "done"}, headers=owner_headers)
+        assert owner_done.status_code == 403
+        assert len(calls) == 1
+
+        # Somente Admin pode marcar como done e fechar a Issue no GitHub
+        admin_headers = {"X-Admin-Key": "super-secret-admin-key"}
+        done_resp = client.patch(f"/api/tasks/{task_id}", json={"status": "done"}, headers=admin_headers)
         assert done_resp.status_code == 200
         assert len(calls) == 2
         assert calls[1]["method"] == "PATCH"
