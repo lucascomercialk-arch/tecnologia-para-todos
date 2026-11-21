@@ -14,9 +14,60 @@
 
   let currentTab = 'inicio';
   let currentLessonId = localStorage.getItem(STORAGE_LESSON_KEY) || (LESSONS[0] && LESSONS[0].id) || 'aula-1';
-  let currentGlossaryCat = 'Todas';
+  let currentGlossaryCat = 'all';
   let glossaryQuery = '';
   let completedCards = new Set();
+
+  function t(key, vars) {
+    return TPT.i18n && typeof TPT.i18n.t === 'function' ? TPT.i18n.t(key, vars) : key;
+  }
+
+  function currentLang() {
+    return TPT.i18n && typeof TPT.i18n.getLang === 'function' ? TPT.i18n.getLang() : 'pt';
+  }
+
+  function getLocalizedLessons() {
+    const lang = currentLang();
+    const map = window.TPT_LESSONS_I18N && window.TPT_LESSONS_I18N[lang];
+    if (lang === 'pt' || !map) return LESSONS;
+
+    const lessonOverrides = map.lessons || {};
+    const cardOverrides = map.cards || {};
+
+    return LESSONS.map((lesson) => {
+      const lOver = lessonOverrides[lesson.id] || {};
+      const topics = (lesson.topics || []).map((topic, idx) => {
+        const tOver = lOver.topics && lOver.topics[idx];
+        return tOver ? Object.assign({}, topic, tOver) : topic;
+      });
+      const cards = (lesson.cards || []).map((card) => {
+        const cOver = cardOverrides[card.id];
+        if (!cOver) return card;
+        const mergedItems = card.items
+          ? card.items.map((it, idx) => {
+              const iOver = cOver.items && cOver.items[idx];
+              return iOver ? Object.assign({}, it, iOver) : it;
+            })
+          : card.items;
+        return Object.assign({}, card, cOver, { items: mergedItems });
+      });
+      return Object.assign({}, lesson, lOver, { topics, cards });
+    });
+  }
+
+  function getLocalizedGlossary() {
+    const lang = currentLang();
+    const map = window.TPT_GLOSSARY_I18N && window.TPT_GLOSSARY_I18N[lang];
+    return GLOSSARY.map((item) => {
+      const over = map && map[item.term];
+      if (!over) return Object.assign({}, item, { displayTerm: item.term });
+      return Object.assign({}, item, {
+        displayTerm: over.termLabel || item.term,
+        simple: over.simple || item.simple,
+        output: over.output || item.output,
+      });
+    });
+  }
 
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_DONE_KEY) || '[]');
@@ -54,7 +105,8 @@
   /* ---------- Formata a saída esperada, destacando [[o que a pessoa digita]] ---------- */
   function formatOutput(raw) {
     const safe = escapeHtml(raw);
-    return safe.replace(/\[\[([\s\S]*?)\]\]/g, '<span class="typed" title="Valor digitado pela pessoa">$1</span>');
+    const typedTitle = escapeHtml(t('lessons.typedTitle'));
+    return safe.replace(/\[\[([\s\S]*?)\]\]/g, `<span class="typed" title="${typedTitle}">$1</span>`);
   }
 
   /* ---------- Bloco de código reutilizável ---------- */
@@ -67,7 +119,7 @@
           <span class="dot bg-sol"></span>
           <span class="dot bg-menta"></span>
           <span class="ml-2 font-mono text-xs text-slate-400">python</span>
-          <button type="button" class="copy-btn" data-copy-code="${encoded}" title="Copiar código">📋 Copiar</button>
+          <button type="button" class="copy-btn" data-copy-code="${encoded}" title="${escapeHtml(t('lessons.copyTitle'))}">${escapeHtml(t('lessons.copyBtn'))}</button>
         </div>
         <pre><code>${highlightPython(code)}</code></pre>
       </div>
@@ -119,20 +171,21 @@
     if (TPT.playground) {
       TPT.playground.setCode(code, title);
     }
-    showToast(`💻 "${title}" carregado! Clique em ▶ Rodar Código.`);
+    showToast(t('lessons.loadedToast', { title }));
   }
 
   /* =========================================================
      2. TRILHA DE AULAS
      ========================================================= */
   function getCurrentLesson() {
-    return LESSONS.find((l) => l.id === currentLessonId) || LESSONS[0];
+    const lessons = getLocalizedLessons();
+    return lessons.find((l) => l.id === currentLessonId) || lessons[0];
   }
 
   function renderLessonPicker() {
     const host = document.getElementById('lesson-picker');
     if (!host) return;
-    host.innerHTML = LESSONS.map((lesson) => {
+    host.innerHTML = getLocalizedLessons().map((lesson) => {
       const active = lesson.id === currentLessonId;
       return `
         <button type="button" data-select-lesson="${lesson.id}"
@@ -143,7 +196,7 @@
           }">
           <span class="text-2xl" aria-hidden="true">${lesson.emoji}</span>
           <span>
-            <span class="block text-xs uppercase tracking-wider ${active ? 'text-sol' : 'text-navy/50'}">Aula ${lesson.number}</span>
+            <span class="block text-xs uppercase tracking-wider ${active ? 'text-sol' : 'text-navy/50'}">${escapeHtml(t('lessons.lessonLabel', { n: lesson.number }))}</span>
             <span class="block text-base">${escapeHtml(lesson.title)}</span>
           </span>
         </button>
@@ -160,14 +213,14 @@
     const pct = testableCards.length ? Math.round((doneCount / testableCards.length) * 100) : 0;
 
     const topicsHtml = (lesson.topics || [])
-      .map((t) => {
-        const style = (COLOR_MAP[t.color] && COLOR_MAP[t.color].topic) || 'bg-sol text-navy';
+      .map((tp) => {
+        const style = (COLOR_MAP[tp.color] && COLOR_MAP[tp.color].topic) || 'bg-sol text-navy';
         return `
           <div class="${style} rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-soft">
-            <span class="text-3xl mb-3" aria-hidden="true">${t.emoji}</span>
+            <span class="text-3xl mb-3" aria-hidden="true">${tp.emoji}</span>
             <div>
-              <div class="font-display font-extrabold text-lg sm:text-xl">${escapeHtml(t.name)}</div>
-              <div class="text-sm font-semibold opacity-80">${escapeHtml(t.desc)}</div>
+              <div class="font-display font-extrabold text-lg sm:text-xl">${escapeHtml(tp.name)}</div>
+              <div class="text-sm font-semibold opacity-80">${escapeHtml(tp.desc)}</div>
             </div>
           </div>
         `;
@@ -179,7 +232,7 @@
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <span class="inline-block text-xs font-extrabold uppercase tracking-[0.18em] text-sol">
-              Aula ${lesson.number} · Trilha de Python
+              ${escapeHtml(t('lessons.heroEyebrow', { n: lesson.number }))}
             </span>
             <h2 class="font-display font-extrabold text-3xl sm:text-5xl mt-2 tracking-tight">
               ${escapeHtml(lesson.title)} <span aria-hidden="true">${lesson.emoji}</span>
@@ -188,13 +241,13 @@
           </div>
           <div class="bg-white/10 backdrop-blur rounded-2xl p-4 sm:p-5 min-w-[240px]">
             <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-200 mb-2">
-              <span>Exemplos testados</span>
+              <span>${escapeHtml(t('lessons.testedProgress'))}</span>
               <span class="text-sol">${doneCount} / ${testableCards.length}</span>
             </div>
             <div class="progress-track bg-white/15">
               <div class="progress-fill" style="width:${pct}%"></div>
             </div>
-            <p class="text-xs text-slate-300 mt-2">Clique em “Testar no Playground” em cada card.</p>
+            <p class="text-xs text-slate-300 mt-2">${escapeHtml(t('lessons.heroHint'))}</p>
           </div>
         </div>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-7">
@@ -229,15 +282,15 @@
     const encodedPlay = encodeURIComponent(codeForPlayground);
     const encodedTitle = encodeURIComponent(card.title);
     const isDone = completedCards.has(card.id);
-    const btnLabel = card.buttonLabel || '▶ Testar no Playground';
+    const btnLabel = card.buttonLabel || t('lessons.tryInPlaygroundBtn');
 
     // Card de Desafio (fundo coral como no slide "Desafio 1 ⚡")
     if (card.kind === 'challenge') {
       return `
         <article class="md:col-span-2 rounded-3xl bg-coral text-navy p-6 sm:p-8 shadow-lift flex flex-col gap-5 fade-in">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <span class="badge bg-white/90 text-navy">⚡ Prática mão na massa</span>
-            ${isDone ? '<span class="badge bg-menta text-navy">✓ Testado</span>' : ''}
+            <span class="badge bg-white/90 text-navy">${escapeHtml(t('lessons.challengeBadge'))}</span>
+            ${isDone ? `<span class="badge bg-menta text-navy">${escapeHtml(t('lessons.testedBadge'))}</span>` : ''}
           </div>
           <h3 class="font-display font-extrabold text-2xl sm:text-4xl tracking-tight">
             ${escapeHtml(card.title)} <span aria-hidden="true">${card.emoji || '⚡'}</span>
@@ -257,7 +310,7 @@
           <div class="pt-1">
             <button type="button" class="btn-primary bg-navy text-white hover:bg-navy-800"
               data-try-code="${encodedPlay}" data-try-title="${encodedTitle}" data-card-id="${card.id}">
-              🚀 Começar desafio no Playground
+              ${escapeHtml(t('lessons.challengeBtn'))}
             </button>
           </div>
         </article>
@@ -270,7 +323,7 @@
         <article class="md:col-span-2 rounded-3xl bg-menta-soft border-2 border-teal-300/80 p-6 sm:p-8 shadow-lift flex flex-col gap-5 fade-in">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <span class="badge bg-navy text-sol">${escapeHtml(card.tag || 'Mini Projeto')}</span>
-            ${isDone ? '<span class="badge bg-white text-teal-900">✓ Testado no Playground</span>' : ''}
+            ${isDone ? `<span class="badge bg-white text-teal-900">${escapeHtml(t('lessons.testedPlaygroundBadge'))}</span>` : ''}
           </div>
           <h3 class="font-display font-extrabold text-2xl sm:text-3xl tracking-tight">
             ${escapeHtml(card.title)} <span aria-hidden="true">${card.emoji || '🚀'}</span>
@@ -285,8 +338,8 @@
                   ? `
                 <div class="output-box">
                   <div class="flex items-center justify-between mb-1.5">
-                    <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-800">➡️ Saída de exemplo</span>
-                    ${card.output.includes('[[') ? '<span class="text-xs font-semibold text-amber-800 bg-sol-soft px-2 py-0.5 rounded-md">amarelo = você digita</span>' : ''}
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-800">${escapeHtml(t('lessons.exampleOutputLabel'))}</span>
+                    ${card.output.includes('[[') ? `<span class="text-xs font-semibold text-amber-800 bg-sol-soft px-2 py-0.5 rounded-md">${escapeHtml(t('lessons.typedBadge'))}</span>` : ''}
                   </div>
                   <pre>${formatOutput(card.output)}</pre>
                 </div>
@@ -332,8 +385,8 @@
     return `
       <article class="rounded-3xl bg-white border border-navy/10 p-6 shadow-soft hover:shadow-lift transition flex flex-col gap-4 fade-in">
         <div class="flex items-center justify-between gap-2">
-          <span class="badge ${color.badge}">${escapeHtml(card.tag || 'Conceito')}</span>
-          ${isDone ? '<span class="badge bg-menta-soft text-teal-900">✓ Testado</span>' : ''}
+          <span class="badge ${color.badge}">${escapeHtml(card.tag || '')}</span>
+          ${isDone ? `<span class="badge bg-menta-soft text-teal-900">${escapeHtml(t('lessons.testedBadge'))}</span>` : ''}
         </div>
         <div>
           <h3 class="font-display font-extrabold text-xl sm:text-2xl tracking-tight flex items-center gap-2">
@@ -350,8 +403,8 @@
             ? `
           <div class="output-box">
             <div class="flex items-center justify-between mb-1">
-              <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-800">➡️ Saída esperada</span>
-              ${card.output.includes('[[') ? '<span class="text-xs font-semibold text-amber-800 bg-sol-soft px-2 py-0.5 rounded-md">amarelo = você digita</span>' : ''}
+              <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-800">${escapeHtml(t('lessons.expectedOutputLabel'))}</span>
+              ${card.output.includes('[[') ? `<span class="text-xs font-semibold text-amber-800 bg-sol-soft px-2 py-0.5 rounded-md">${escapeHtml(t('lessons.typedBadge'))}</span>` : ''}
             </div>
             <pre>${formatOutput(card.output)}</pre>
           </div>
@@ -382,29 +435,30 @@
   function renderLessonNav(lesson) {
     const host = document.getElementById('lesson-nav');
     if (!host) return;
-    const idx = LESSONS.findIndex((l) => l.id === lesson.id);
-    const prev = LESSONS[idx - 1];
-    const next = LESSONS[idx + 1];
+    const lessons = getLocalizedLessons();
+    const idx = lessons.findIndex((l) => l.id === lesson.id);
+    const prev = lessons[idx - 1];
+    const next = lessons[idx + 1];
 
     host.innerHTML = `
       <div>
         ${
           prev
             ? `<button type="button" data-select-lesson="${prev.id}" class="btn-soft">
-                ← Aula ${prev.number}: ${escapeHtml(prev.title)}
+                ← ${escapeHtml(t('lessons.lessonLabel', { n: prev.number }))}: ${escapeHtml(prev.title)}
               </button>`
             : ''
         }
       </div>
       <div class="flex flex-wrap gap-3">
-        <button type="button" data-go-tab="glossario" class="btn-soft">📖 Ver Glossário</button>
+        <button type="button" data-go-tab="glossario" class="btn-soft">${escapeHtml(t('lessons.viewGlossaryBtn'))}</button>
         ${
           next
             ? `<button type="button" data-select-lesson="${next.id}" class="btn-primary">
-                Ir para Aula ${next.number}: ${escapeHtml(next.title)} →
+                ${escapeHtml(t('lessons.nextLessonBtn', { n: next.number, title: next.title }))}
               </button>`
             : `<button type="button" data-go-tab="playground" class="btn-primary">
-                💻 Abrir Playground Livre →
+                ${escapeHtml(t('lessons.openFreePlaygroundBtn'))}
               </button>`
         }
       </div>
@@ -435,11 +489,16 @@
   }
 
   function getCategories() {
-    const set = new Set(['Todas']);
+    const set = new Set(['all']);
     GLOSSARY.forEach((item) => {
       if (item.category) set.add(item.category);
     });
     return [...set];
+  }
+
+  function getCategoryLabel(catKey) {
+    const translated = t(`glossary.categories.${catKey}`);
+    return translated && translated !== `glossary.categories.${catKey}` ? translated : catKey;
   }
 
   function renderGlossaryFilters() {
@@ -455,7 +514,7 @@
                 ? 'bg-navy text-white border-navy shadow-soft'
                 : 'bg-white text-navy/75 border-navy/10 hover:bg-creme-200'
             }">
-            ${escapeHtml(cat)}
+            ${escapeHtml(getCategoryLabel(cat))}
           </button>
         `;
       })
@@ -469,14 +528,17 @@
     const count = document.getElementById('glossary-count');
     if (!grid) return;
 
+    const localizedGlossary = getLocalizedGlossary();
     const q = normalize(glossaryQuery);
-    const filtered = GLOSSARY.filter((item) => {
-      if (currentGlossaryCat !== 'Todas' && item.category !== currentGlossaryCat) return false;
+    const filtered = localizedGlossary.filter((item) => {
+      if (currentGlossaryCat !== 'all' && item.category !== currentGlossaryCat) return false;
       if (!q) return true;
       const haystack = normalize(
         [
           item.term,
+          item.displayTerm,
           item.category,
+          getCategoryLabel(item.category),
           item.simple,
           item.example,
           item.tr && item.tr.es,
@@ -489,9 +551,9 @@
 
     if (count) {
       count.textContent =
-        filtered.length === GLOSSARY.length
-          ? `Mostrando todas as ${GLOSSARY.length} palavras`
-          : `Encontradas ${filtered.length} de ${GLOSSARY.length} palavras`;
+        filtered.length === localizedGlossary.length
+          ? t('glossary.countAll', { total: localizedGlossary.length })
+          : t('glossary.countFiltered', { found: filtered.length, total: localizedGlossary.length });
     }
 
     if (!filtered.length) {
@@ -504,16 +566,16 @@
     grid.innerHTML = filtered
       .map((item) => {
         const encoded = item.example ? encodeURIComponent(item.example) : '';
-        const encodedTitle = encodeURIComponent(item.term);
+        const encodedTitle = encodeURIComponent(item.displayTerm || item.term);
         return `
           <article class="rounded-3xl bg-white border border-navy/10 p-6 shadow-soft flex flex-col gap-3.5 fade-in">
             <div class="flex items-center justify-between gap-2">
-              <span class="badge bg-ceu-soft text-sky-950">${escapeHtml(item.category)}</span>
-              <span class="text-xs font-bold text-navy/45">Aula ${item.lesson || 1}</span>
+              <span class="badge bg-ceu-soft text-sky-950">${escapeHtml(getCategoryLabel(item.category))}</span>
+              <span class="text-xs font-bold text-navy/45">${escapeHtml(t('glossary.lessonTag', { n: item.lesson || 1 }))}</span>
             </div>
             <h3 class="font-mono font-extrabold text-xl text-navy flex items-center gap-2">
               <span aria-hidden="true">${item.emoji || '📌'}</span>
-              <span>${escapeHtml(item.term)}</span>
+              <span>${escapeHtml(item.displayTerm || item.term)}</span>
             </h3>
             <p class="text-navy/80 text-base leading-relaxed">${escapeHtml(item.simple)}</p>
 
@@ -532,7 +594,7 @@
             ${item.example ? renderCodeBlock(item.example) : ''}
             ${
               item.output
-                ? `<div class="output-box"><span class="text-xs font-extrabold uppercase tracking-wider text-emerald-800 block mb-0.5">➡️ Saída</span><pre>${escapeHtml(item.output)}</pre></div>`
+                ? `<div class="output-box"><span class="text-xs font-extrabold uppercase tracking-wider text-emerald-800 block mb-0.5">${escapeHtml(t('glossary.outputLabel'))}</span><pre>${escapeHtml(item.output)}</pre></div>`
                 : ''
             }
             ${
@@ -540,7 +602,7 @@
                 ? `
               <button type="button" class="btn-soft mt-auto text-sm"
                 data-try-code="${encoded}" data-try-title="${encodedTitle}">
-                ▶ Testar no Playground
+                ${escapeHtml(t('glossary.tryBtn'))}
               </button>
             `
                 : ''
@@ -564,8 +626,14 @@
     document.addEventListener('click', (e) => {
       const tryBtn = e.target.closest('[data-try-code]');
       if (tryBtn) {
-        const code = decodeURIComponent(tryBtn.getAttribute('data-try-code') || '');
-        const title = decodeURIComponent(tryBtn.getAttribute('data-try-title') || 'Exemplo');
+        let code = decodeURIComponent(tryBtn.getAttribute('data-try-code') || '');
+        const titleKey = tryBtn.getAttribute('data-try-title-key');
+        const title = titleKey
+          ? t(titleKey)
+          : decodeURIComponent(tryBtn.getAttribute('data-try-title') || t('lessons.defaultExampleTitle'));
+        if (tryBtn.id === 'home-preview-run-btn') {
+          code = `nome = input(${JSON.stringify(t('home.hero.previewCodePrompt'))})\nprint(${JSON.stringify(t('home.hero.previewCodeGreeting'))}, nome)`;
+        }
         const cardId = tryBtn.getAttribute('data-card-id') || null;
         openInPlayground(code, title, cardId);
         return;
@@ -575,7 +643,7 @@
       if (copyBtn) {
         const code = decodeURIComponent(copyBtn.getAttribute('data-copy-code') || '');
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(code).then(() => showToast('📋 Código copiado!'));
+          navigator.clipboard.writeText(code).then(() => showToast(t('lessons.copiedToast')));
         }
         return;
       }
@@ -593,7 +661,7 @@
 
       const catBtn = e.target.closest('[data-glossary-cat]');
       if (catBtn) {
-        currentGlossaryCat = catBtn.getAttribute('data-glossary-cat') || 'Todas';
+        currentGlossaryCat = catBtn.getAttribute('data-glossary-cat') || 'all';
         renderGlossary();
         return;
       }
@@ -623,6 +691,14 @@
   }
 
   function init() {
+    if (TPT.i18n) {
+      TPT.i18n.init();
+      TPT.i18n.onChange(() => {
+        renderLessons();
+        renderGlossary();
+      });
+    }
+    if (TPT.theme) TPT.theme.init();
     if (TPT.playground) TPT.playground.init();
     if (TPT.issues) TPT.issues.init(showToast);
     renderLessons();
