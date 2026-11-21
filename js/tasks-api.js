@@ -9,7 +9,7 @@
 (function (root) {
   'use strict';
 
-  const PRODUCTION_API_BASE_URL = 'https://tpt-api.SEU-DOMINIO.com'; // Substitua pela URL HTTPS do túnel/proxy do servidor Atlas
+  const PRODUCTION_API_BASE_URL = 'https://atlas-hub.tail16e072.ts.net:8443'; // URL HTTPS via Tailscale Funnel (porta 8443) no servidor Atlas
   const LOCAL_API_BASE_URL = 'http://localhost:3050';
   const IS_LOCAL_HOST =
     typeof location !== 'undefined' &&

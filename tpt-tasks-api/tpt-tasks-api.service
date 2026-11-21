@@ -1,17 +1,18 @@
-# Copie para /etc/systemd/system/tpt-tasks-api.service e ajuste User/Group para o seu usuário Linux
 [Unit]
 Description=Tecnologia para Todos - Tasks API (FastAPI + SQLite WAL)
-After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
-User=ubuntu
-Group=ubuntu
-WorkingDirectory=/home/ubuntu/tpt-tasks-api
+WorkingDirectory=%h/tpt-tasks-api
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/home/ubuntu/tpt-tasks-api/.venv/bin/uvicorn main:app --host 127.0.0.1 --port 3050
-Restart=always
-RestartSec=3
+ExecStart=%h/tpt-tasks-api/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 3050
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=yes
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

@@ -52,15 +52,14 @@ pm2 save
 pm2 startup
 ```
 
-#### Opção B — Com systemd
-
-Ajuste `User`, `Group` e os caminhos em `tpt-tasks-api.service` se o usuário não for `ubuntu`:
+#### Opção B — Com systemd (`--user`, sem precisar de `sudo`)
 
 ```bash
-sudo cp tpt-tasks-api.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now tpt-tasks-api
-sudo systemctl status tpt-tasks-api
+mkdir -p ~/.config/systemd/user
+cp ~/tpt-tasks-api/tpt-tasks-api.service ~/.config/systemd/user/tpt-tasks-api.service
+systemctl --user daemon-reload
+systemctl --user enable --now tpt-tasks-api.service
+systemctl --user status tpt-tasks-api.service --no-pager
 ```
 
 ### 4. Verificar saúde local
@@ -80,10 +79,15 @@ Retorno esperado:
 }
 ```
 
-### 5. Expor com HTTPS (Cloudflare Tunnel ou Nginx)
+### 5. Expor com HTTPS (Tailscale Funnel, Cloudflare Tunnel ou Nginx)
 
 Como o frontend publicado no GitHub Pages usa HTTPS (`https://lucascomercialk-arch.github.io`), o navegador exige que a API também seja servida via **HTTPS**:
 
+- **Tailscale Funnel na porta `8443` (recomendado no Atlas, sem precisar de domínio):**
+  ```bash
+  tailscale funnel --bg --https=8443 http://127.0.0.1:3050
+  ```
+  URL gerada: `https://atlas-hub.tail16e072.ts.net:8443` (mantendo a porta `:443` privada em `tailnet only`).
 - **Cloudflare Tunnel (`cloudflared`):** aponte o subdomínio desejado (ex.: `https://tpt-api.SEU-DOMINIO.com`) para `http://127.0.0.1:3050`.
 - **Nginx + Certbot:** faça `proxy_pass http://127.0.0.1:3050;` repassando `X-Forwarded-For` e `X-Real-IP`.
 
