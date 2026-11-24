@@ -155,6 +155,7 @@
           Decisões: 'Decisões',
           Listas: 'Listas',
           Repetição: 'Repetição',
+          Bibliotecas: 'Bibliotecas',
         },
       },
       playground: {
@@ -278,6 +279,11 @@
           attrTitle: 'Comando não existe para este tipo (AttributeError)',
           attrExplanation: 'Você usou um comando com ponto (como .append) em algo que não tem esse comando.',
           attrTip: 'append() e remove() funcionam em listas [ ]. Confira o nome da variável e a grafia.',
+          importTitle: 'Biblioteca não encontrada (ModuleNotFoundError)',
+          importModuleExplanation: 'O Python não encontrou a biblioteca "{mod}".',
+          importGenericExplanation: 'O Python não conseguiu importar essa biblioteca ou comando.',
+          importTip:
+            'Confira a ortografia em letras minúsculas (ex.: import random, time, math, datetime).',
         },
       },
       issues: {
@@ -553,6 +559,7 @@
           Decisões: 'Decisiones',
           Listas: 'Listas',
           Repetição: 'Repetición',
+          Bibliotecas: 'Bibliotecas',
         },
       },
       playground: {
@@ -676,6 +683,11 @@
           attrTitle: 'El comando no existe para este tipo (AttributeError)',
           attrExplanation: 'Usaste un comando con punto (como .append) en algo que no tiene ese comando.',
           attrTip: 'append() y remove() funcionan en listas [ ]. Revisa el nombre de la variable y cómo se escribe.',
+          importTitle: 'Biblioteca no encontrada (ModuleNotFoundError)',
+          importModuleExplanation: 'Python no encontró la biblioteca "{mod}".',
+          importGenericExplanation: 'Python no pudo importar esa biblioteca o comando.',
+          importTip:
+            'Revisa que esté escrita bien y en minúsculas (ej.: import random, time, math, datetime).',
         },
       },
       issues: {
@@ -951,6 +963,7 @@
           Decisões: 'Decisions',
           Listas: 'Lists',
           Repetição: 'Loops',
+          Bibliotecas: 'Libraries',
         },
       },
       playground: {
@@ -1074,6 +1087,11 @@
           attrTitle: 'Command does not exist for this type (AttributeError)',
           attrExplanation: 'You used a dot command (like .append) on something that does not support it.',
           attrTip: 'append() and remove() work on lists [ ]. Check the variable name and spelling.',
+          importTitle: 'Library not found (ModuleNotFoundError)',
+          importModuleExplanation: 'Python could not find the library "{mod}".',
+          importGenericExplanation: 'Python could not import that library or symbol.',
+          importTip:
+            'Check the spelling in lowercase (e.g., import random, time, math, datetime).',
         },
       },
       issues: {
