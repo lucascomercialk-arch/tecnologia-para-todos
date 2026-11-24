@@ -145,6 +145,39 @@
         simple:
           'Cuando una parte del código se repite varias veces. for y while crean bucles. Un “bucle infinito” es cuando nunca termina.',
       },
+      import: {
+        simple:
+          'Comando usado al inicio del código para traer bibliotecas listas a tu programa.',
+      },
+      'biblioteca / módulo': {
+        termLabel: 'biblioteca / módulo',
+        simple:
+          'Un paquete con funciones y herramientas listas que ya vienen en Python (como random, time, math y datetime).',
+      },
+      random: {
+        simple:
+          'Biblioteca para generar números aleatorios, hacer sorteos y mezclar listas.',
+      },
+      'random.randint()': {
+        simple:
+          'Sortea un número entero entre dos límites, incluyendo el primer y el último número.',
+      },
+      'random.choice()': {
+        simple:
+          'Elige aleatoriamente un elemento de una lista.',
+      },
+      'time.sleep()': {
+        simple:
+          'Pausa la ejecución del programa durante una cantidad de segundos (puedes usar decimales como 0.5).',
+      },
+      math: {
+        simple:
+          'Biblioteca matemática con funciones como sqrt() (raíz cuadrada), ceil(), floor() y la constante pi.',
+      },
+      datetime: {
+        simple:
+          'Biblioteca para trabajar con fechas y horas actuales en el programa.',
+      },
     },
 
     en: {
@@ -282,6 +315,39 @@
         termLabel: 'loop',
         simple:
           'When a block of code repeats multiple times. for and while create loops. An “infinite loop” never stops.',
+      },
+      import: {
+        simple:
+          'Command placed at the top of your code to bring ready-made libraries into your program.',
+      },
+      'biblioteca / módulo': {
+        termLabel: 'library / module',
+        simple:
+          'A bundle of built-in functions and tools included in Python (such as random, time, math, and datetime).',
+      },
+      random: {
+        simple:
+          'Library for generating random numbers, running draws, and shuffling lists.',
+      },
+      'random.randint()': {
+        simple:
+          'Picks a random whole number between two limits, including both endpoints.',
+      },
+      'random.choice()': {
+        simple:
+          'Randomly picks one item from a list.',
+      },
+      'time.sleep()': {
+        simple:
+          'Pauses program execution for a number of seconds (decimals like 0.5 work too).',
+      },
+      math: {
+        simple:
+          'Math library providing functions like sqrt() (square root), ceil(), floor(), and pi.',
+      },
+      datetime: {
+        simple:
+          'Library for working with current dates and clock times in your program.',
       },
     },
   };

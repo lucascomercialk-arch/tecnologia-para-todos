@@ -231,4 +231,60 @@ window.TPT_GLOSSARY = [
     simple: 'Quando um pedaço do código se repete várias vezes. O for e o while criam loops. “Loop infinito” é quando nunca para.',
     tr: { es: 'bucle', en: 'loop', fr: 'boucle' },
   },
+
+  // ---------------- Bibliotecas ----------------
+  {
+    term: 'import', emoji: '📦', category: 'Bibliotecas', lesson: 3,
+    simple: 'Comando usado no início do código para trazer bibliotecas prontas para o seu programa.',
+    example: 'import random\nprint(random.randint(1, 6))',
+    output: '4',
+    tr: { es: 'importar', en: 'import', fr: 'importer' },
+  },
+  {
+    term: 'biblioteca / módulo', emoji: '🧰', category: 'Bibliotecas', lesson: 3,
+    simple: 'Um pacote com funções e ferramentas prontas que já existem no Python (como random, time, math e datetime).',
+    tr: { es: 'biblioteca / módulo', en: 'library / module', fr: 'bibliothèque / module' },
+  },
+  {
+    term: 'random', emoji: '🎲', category: 'Bibliotecas', lesson: 3,
+    simple: 'Biblioteca para gerar números aleatórios, fazer sorteios e embaralhar listas.',
+    example: 'import random\nprint(random.randint(1, 10))',
+    output: '7',
+    tr: { es: 'aleatorio', en: 'random', fr: 'aléatoire' },
+  },
+  {
+    term: 'random.randint()', emoji: '🎯', category: 'Bibliotecas', lesson: 3,
+    simple: 'Sorteia um número inteiro entre dois limites, incluindo o primeiro e o último número.',
+    example: 'import random\ndado = random.randint(1, 6)\nprint("Dado:", dado)',
+    output: 'Dado: 5',
+    tr: { es: 'entero aleatorio', en: 'random integer', fr: 'entier aléatoire' },
+  },
+  {
+    term: 'random.choice()', emoji: '🍀', category: 'Bibliotecas', lesson: 3,
+    simple: 'Escolhe aleatoriamente um item de dentro de uma lista.',
+    example: 'import random\nnomes = ["Ana", "Leo", "Bia"]\nprint(random.choice(nomes))',
+    output: 'Leo',
+    tr: { es: 'elección aleatoria', en: 'random choice', fr: 'choix aléatoire' },
+  },
+  {
+    term: 'time.sleep()', emoji: '⏱️', category: 'Bibliotecas', lesson: 3,
+    simple: 'Pausa a execução do programa por uma quantidade de segundos (pode usar decimais, como 0.5).',
+    example: 'import time\nprint("3...")\ntime.sleep(1)\nprint("Já!")',
+    output: '3...\nJá!',
+    tr: { es: 'pausar / esperar', en: 'sleep / pause', fr: 'pause / attendre' },
+  },
+  {
+    term: 'math', emoji: '🧮', category: 'Bibliotecas', lesson: 3,
+    simple: 'Biblioteca de matemática com funções como sqrt() (raiz quadrada), ceil(), floor() e a constante pi.',
+    example: 'import math\nprint(math.sqrt(25))',
+    output: '5.0',
+    tr: { es: 'matemáticas', en: 'math', fr: 'mathématiques' },
+  },
+  {
+    term: 'datetime', emoji: '📅', category: 'Bibliotecas', lesson: 3,
+    simple: 'Biblioteca para trabalhar com datas e horários atuais no programa.',
+    example: 'from datetime import datetime\nprint(datetime.now().strftime("%d/%m/%Y"))',
+    output: '23/11/2026',
+    tr: { es: 'fecha y hora', en: 'date and time', fr: 'date et heure' },
+  },
 ];

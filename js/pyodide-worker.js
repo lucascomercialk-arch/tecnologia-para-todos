@@ -43,7 +43,7 @@ function TPT_pyWorkerMain(PYODIDE_INDEX_URL) {
 
   /* ---------- Código Python que prepara e executa o código do aluno ---------- */
   const RUNNER_SOURCE = String.raw`
-import ast, sys, json, linecache, traceback, builtins, inspect
+import ast, sys, json, linecache, traceback, builtins, inspect, time as _tpt_time_mod
 import tpt_bridge
 
 FILENAME = "main.py"
@@ -66,12 +66,60 @@ async def _tpt_input(prompt=""):
 
 _tpt_input.__name__ = "input"
 
+
+async def _tpt_sleep(seconds):
+    """Pausa assíncrona compatível com time.sleep() sem travar o worker."""
+    secs = float(seconds)
+    if secs < 0:
+        raise ValueError("sleep length must be non-negative")
+    try:
+        sys.stdout.flush()
+        sys.stderr.flush()
+    except Exception:
+        pass
+    await tpt_bridge.sleep(secs)
+
+_tpt_sleep.__name__ = "sleep"
+
 _BARRIERS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
 
 
-def _direct_calls(fn):
-    """Nomes chamados diretamente no corpo da função (sem entrar em funções internas)."""
+def _collect_time_aliases(tree):
+    """Identifica nomes locais ligados ao módulo time ou a time.sleep."""
+    time_aliases = set()
+    sleep_aliases = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "time":
+                    time_aliases.add(alias.asname or "time")
+        elif isinstance(node, ast.ImportFrom) and node.module == "time":
+            for alias in node.names:
+                if alias.name == "sleep":
+                    sleep_aliases.add(alias.asname or "sleep")
+                elif alias.name == "*":
+                    sleep_aliases.add("sleep")
+    return time_aliases, sleep_aliases
+
+
+def _is_sleep_call(call, time_aliases, sleep_aliases):
+    f = call.func
+    if isinstance(f, ast.Name) and f.id in sleep_aliases:
+        return True
+    if (
+        isinstance(f, ast.Attribute)
+        and f.attr == "sleep"
+        and isinstance(f.value, ast.Name)
+        and f.value.id in time_aliases
+    ):
+        return True
+    return False
+
+
+def _direct_calls(fn, time_aliases, sleep_aliases):
+    """Nomes chamados diretamente no corpo da função e se ela usa builtins assíncronos."""
     names = set()
+    has_async_builtin = False
     stack = list(fn.body)
     while stack:
         node = stack.pop()
@@ -79,19 +127,25 @@ def _direct_calls(fn):
             continue
         if isinstance(node, ast.Call):
             f = node.func
+            if (isinstance(f, ast.Name) and f.id == "input") or _is_sleep_call(node, time_aliases, sleep_aliases):
+                has_async_builtin = True
             if isinstance(f, ast.Name):
                 names.add(f.id)
             elif isinstance(f, ast.Attribute):
                 names.add(f.attr)
         stack.extend(ast.iter_child_nodes(node))
-    return names
+    return names, has_async_builtin
 
 
 class _AsyncTransformer(ast.NodeTransformer):
-    def __init__(self, async_names):
+    def __init__(self, async_names, time_aliases, sleep_aliases):
         self.async_names = async_names
+        self.time_aliases = time_aliases
+        self.sleep_aliases = sleep_aliases
 
     def _needs_await(self, call):
+        if _is_sleep_call(call, self.time_aliases, self.sleep_aliases):
+            return True
         f = call.func
         if isinstance(f, ast.Name):
             return f.id == "input" or f.id in self.async_names
@@ -105,6 +159,12 @@ class _AsyncTransformer(ast.NodeTransformer):
             return ast.copy_location(ast.Await(value=node), node)
         return node
 
+    def visit_Await(self, node):
+        self.generic_visit(node)
+        if isinstance(node.value, ast.Await):
+            node.value = node.value.value
+        return node
+
     def visit_FunctionDef(self, node):
         self.generic_visit(node)
         if node.name in self.async_names:
@@ -114,20 +174,21 @@ class _AsyncTransformer(ast.NodeTransformer):
 
 
 def _make_async(tree):
+    time_aliases, sleep_aliases = _collect_time_aliases(tree)
     funcs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
-    calls = {id(f): _direct_calls(f) for f in funcs}
-    async_names = set()
+    call_info = {id(f): _direct_calls(f, time_aliases, sleep_aliases) for f in funcs}
+    async_names = {f.name for f in funcs if call_info[id(f)][1]}
     changed = True
     while changed:
         changed = False
         for f in funcs:
             if f.name in async_names:
                 continue
-            c = calls[id(f)]
-            if "input" in c or (c & async_names):
+            called_names = call_info[id(f)][0]
+            if called_names & async_names:
                 async_names.add(f.name)
                 changed = True
-    tree = _AsyncTransformer(async_names).visit(tree)
+    tree = _AsyncTransformer(async_names, time_aliases, sleep_aliases).visit(tree)
     return ast.fix_missing_locations(tree)
 
 
@@ -167,6 +228,8 @@ def _error_info(exc):
 async def tpt_run(source):
     linecache.cache[FILENAME] = (len(source), None, source.splitlines(True), FILENAME)
     ns = {"__name__": "__main__", "__builtins__": builtins, "input": _tpt_input}
+    orig_sleep = _tpt_time_mod.sleep
+    _tpt_time_mod.sleep = _tpt_sleep
     try:
         tree = ast.parse(source, FILENAME)
         tree = _make_async(tree)
@@ -180,6 +243,7 @@ async def tpt_run(source):
     except BaseException as exc:
         return json.dumps({"ok": False, "error": _error_info(exc)})
     finally:
+        _tpt_time_mod.sleep = orig_sleep
         try:
             sys.stdout.flush()
             sys.stderr.flush()
@@ -201,6 +265,10 @@ async def tpt_run(source):
             pendingInput = resolve;
             post({ type: 'input-request', prompt: String(prompt == null ? '' : prompt) });
           });
+        },
+        sleep(seconds) {
+          const ms = Math.max(0, Number(seconds) * 1000);
+          return new Promise((resolve) => setTimeout(resolve, Number.isFinite(ms) ? ms : 0));
         },
       });
       pyodide.runPython(RUNNER_SOURCE);

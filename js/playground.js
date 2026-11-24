@@ -627,6 +627,14 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
       title = t('playground.errors.attrTitle');
       explanation = t('playground.errors.attrExplanation');
       tip = t('playground.errors.attrTip');
+    } else if (type === 'ModuleNotFoundError' || type === 'ImportError') {
+      const m = msg.match(/No module named '([^']+)'/);
+      const mod = m ? m[1] : '';
+      title = t('playground.errors.importTitle');
+      explanation = mod
+        ? t('playground.errors.importModuleExplanation', { mod })
+        : t('playground.errors.importGenericExplanation');
+      tip = t('playground.errors.importTip');
     }
 
     return { title, explanation, tip, line, codeLine, original: err.original || `${type}: ${msg}` };
