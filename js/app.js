@@ -322,7 +322,7 @@
       return `
         <article class="md:col-span-2 rounded-3xl bg-menta-soft border-2 border-teal-300/80 p-6 sm:p-8 shadow-lift flex flex-col gap-5 fade-in">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <span class="badge bg-navy text-sol">${escapeHtml(card.tag || 'Mini Projeto')}</span>
+            <span class="badge bg-navy text-sol">${escapeHtml(card.tag || t('lessons.miniProjectFallback'))}</span>
             ${isDone ? `<span class="badge bg-white text-teal-900">${escapeHtml(t('lessons.testedPlaygroundBadge'))}</span>` : ''}
           </div>
           <h3 class="font-display font-extrabold text-2xl sm:text-3xl tracking-tight">

@@ -51,7 +51,7 @@
     const info = MODULE_CLASS_MAP[mod];
     return info
       ? { label: t(info.key), cls: info.cls }
-      : { label: mod || 'geral', cls: 'badge bg-creme text-navy/80 border border-navy/10' };
+      : { label: mod || t('issues.modules.geralShort'), cls: 'badge bg-creme text-navy/80 border border-navy/10' };
   }
 
   function getPriorityMeta(prio) {
@@ -632,9 +632,11 @@
     const lines = [t('issues.messages.mdHeader')];
     combined.forEach((it) => {
       const mark = it.status === 'done' ? 'x' : ' ';
+      const modLabel = getModuleMeta(it.module).label;
+      const prioLabel = getPriorityMeta(it.priority).label;
       const gh = it.github_issue_number ? ` (GitHub #${it.github_issue_number})` : '';
       const desc = it.description ? ` — ${it.description}` : '';
-      lines.push(`- [${mark}] [${it.module} · ${it.priority}] **${it.title}**${desc}${gh}`);
+      lines.push(`- [${mark}] [${modLabel} · ${prioLabel}] **${it.title}**${desc}${gh}`);
     });
     return lines.join('\n');
   }

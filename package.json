@@ -1,0 +1,10 @@
+{
+  "name": "tecnologia-para-todos",
+  "private": true,
+  "description": "Plataforma interativa de ensino de programação (GitHub Pages + i18n + Playground Pyodide)",
+  "scripts": {
+    "check:syntax": "node --check js/i18n.js && node --check js/theme.js && node --check js/app.js && node --check js/playground.js && node --check js/pyodide-worker.js && node --check js/issues.js && node --check js/tasks-api.js && node --check data/i18n/ui.js && node --check data/i18n/lessons-i18n.js && node --check data/i18n/glossary-i18n.js",
+    "test:i18n": "node tests/i18n.test.cjs",
+    "test": "node tests/i18n.test.cjs"
+  }
+}

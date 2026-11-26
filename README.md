@@ -41,6 +41,7 @@ A partir dessa vivência, decidi construir esta plataforma web: um espaço visua
 * **Editor de Código:** [Monaco Editor](https://microsoft.github.io/monaco-editor/)
 * **Interpretador Python Client-Side:** [Pyodide (WebAssembly)](https://pyodide.org/)
 * **Backend opcional de Tasks (`tpt-tasks-api/`):** Python 3, FastAPI, Uvicorn, SQLite (`WAL`) e integração com GitHub Issues — veja [tpt-tasks-api/README.md](tpt-tasks-api/README.md) para deploy no servidor Linux.
+* **Testes automatizados (i18n e sintaxe):** `npm run check:syntax` e `npm test` (suíte Node.js zero-dependências em [tests/i18n.test.cjs](tests/i18n.test.cjs) + workflow CI em `.github/workflows/ci.yml` — guia completo em [docs/I18N.md](docs/I18N.md))
 * **Hospedagem:** GitHub Pages
 
 ---
