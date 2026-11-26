@@ -32,6 +32,14 @@
 
   const TPT = (root.TPT = root.TPT || {});
 
+  function t(key, fallback) {
+    if (TPT.i18n && typeof TPT.i18n.t === 'function') {
+      const translated = TPT.i18n.t(key);
+      if (translated && translated !== key) return translated;
+    }
+    return fallback;
+  }
+
   function generateUuid() {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
       return crypto.randomUUID();
@@ -281,8 +289,14 @@
       if (resp.status >= 400 && resp.status < 500) {
         const fallbackMsg =
           resp.status === 429
-            ? 'Você atingiu o limite de 5 envios por hora. Aguarde um pouco antes de enviar novamente.'
-            : 'Verifique os campos preenchidos e tente novamente.';
+            ? t(
+                'tasksApi.errors.rateLimit',
+                'Você atingiu o limite de 5 envios por hora. Aguarde um pouco antes de enviar novamente.'
+              )
+            : t(
+                'tasksApi.errors.validation',
+                'Verifique os campos preenchidos e tente novamente.'
+              );
         const message = await extractErrorMessage(resp, fallbackMsg);
         return { ok: false, status: resp.status, message };
       }
@@ -345,15 +359,18 @@
       const message = await extractErrorMessage(
         resp,
         resp.status === 403
-          ? 'Sem permissão para editar esta task.'
-          : 'Não foi possível atualizar esta task.'
+          ? t('tasksApi.errors.editForbidden', 'Sem permissão para editar esta task.')
+          : t('tasksApi.errors.editFailed', 'Não foi possível atualizar esta task.')
       );
       return { ok: false, status: resp.status, message };
     } catch (_) {
       return {
         ok: false,
         networkError: true,
-        message: 'Sem conexão com o servidor no momento. Tente novamente em instantes.',
+        message: t(
+          'tasksApi.errors.network',
+          'Sem conexão com o servidor no momento. Tente novamente em instantes.'
+        ),
       };
     }
   }
@@ -389,15 +406,18 @@
       const message = await extractErrorMessage(
         resp,
         resp.status === 403
-          ? 'Sem permissão para excluir esta task.'
-          : 'Não foi possível excluir esta task.'
+          ? t('tasksApi.errors.deleteForbidden', 'Sem permissão para excluir esta task.')
+          : t('tasksApi.errors.deleteFailed', 'Não foi possível excluir esta task.')
       );
       return { ok: false, status: resp.status, message };
     } catch (_) {
       return {
         ok: false,
         networkError: true,
-        message: 'Sem conexão com o servidor no momento. Tente novamente em instantes.',
+        message: t(
+          'tasksApi.errors.network',
+          'Sem conexão com o servidor no momento. Tente novamente em instantes.'
+        ),
       };
     }
   }

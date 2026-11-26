@@ -23,8 +23,10 @@
         toggleThemeToDark: 'Alternar para modo escuro',
         toggleThemeToLight: 'Alternar para modo claro',
         greetingsAria: 'Saudações em várias línguas',
+        brandHomeLink: 'Tecnologia para Todos — início',
       },
       header: {
+        brand: 'Tecnologia para Todos',
         subtitle: 'Projeto Educacional Aberto • Feito para Iniciantes',
         tabs: {
           inicio: 'Início',
@@ -131,6 +133,7 @@
         openFreePlaygroundBtn: '💻 Abrir Playground Livre →',
         loadedToast: '💻 "{title}" carregado! Clique em ▶ Rodar Código.',
         defaultExampleTitle: 'Exemplo',
+        miniProjectFallback: 'Mini Projeto',
       },
       glossary: {
         eyebrow: 'Dicionário da programação',
@@ -167,6 +170,7 @@
         fontDownAria: 'Diminuir tamanho da letra',
         fontUpTitle: 'Aumentar letra',
         fontUpAria: 'Aumentar tamanho da letra',
+        downloadFilename: 'meu_programa.py',
         downloadBtn: '💾 Baixar .py',
         downloadTitle: 'Baixar código como meu_programa.py',
         downloadAria: 'Baixar código como arquivo meu_programa.py',
@@ -182,6 +186,7 @@
         statusNotLoaded: 'Python ainda não carregado',
         statusLoading: 'Carregando o Python…',
         statusWorkerDownloading: 'Baixando o Python… (só demora na 1ª vez)',
+        workerNotReady: 'O Python ainda não terminou de carregar.',
         statusReady: 'Python {version} pronto ✓',
         statusReadyShort: 'Pronto ✓',
         statusFailed: 'Falha no Python',
@@ -402,6 +407,18 @@
           mdEmpty: '# Melhorias & Tasks — Tecnologia para Todos\n\nNenhuma task registrada.',
         },
       },
+      tasksApi: {
+        errors: {
+          rateLimit:
+            'Você atingiu o limite de 5 envios por hora. Aguarde um pouco antes de enviar novamente.',
+          validation: 'Verifique os campos preenchidos e tente novamente.',
+          editForbidden: 'Sem permissão para editar esta task.',
+          editFailed: 'Não foi possível atualizar esta task.',
+          deleteForbidden: 'Sem permissão para excluir esta task.',
+          deleteFailed: 'Não foi possível excluir esta task.',
+          network: 'Sem conexão com o servidor no momento. Tente novamente em instantes.',
+        },
+      },
       footer: {
         developedBy: 'Desenvolvido por ',
         author: 'Lucas Rafael Kammer',
@@ -427,8 +444,10 @@
         toggleThemeToDark: 'Cambiar a modo oscuro',
         toggleThemeToLight: 'Cambiar a modo claro',
         greetingsAria: 'Saludos en varios idiomas',
+        brandHomeLink: 'Tecnología para Todos — inicio',
       },
       header: {
+        brand: 'Tecnología para Todos',
         subtitle: 'Proyecto Educativo Abierto • Hecho para Principiantes',
         tabs: {
           inicio: 'Inicio',
@@ -535,6 +554,7 @@
         openFreePlaygroundBtn: '💻 Abrir Playground Libre →',
         loadedToast: '💻 "¡{title}" cargado! Haz clic en ▶ Ejecutar Código.',
         defaultExampleTitle: 'Ejemplo',
+        miniProjectFallback: 'Mini Proyecto',
       },
       glossary: {
         eyebrow: 'Diccionario de programación',
@@ -571,9 +591,10 @@
         fontDownAria: 'Reducir tamaño de letra',
         fontUpTitle: 'Aumentar letra',
         fontUpAria: 'Aumentar tamaño de letra',
+        downloadFilename: 'mi_programa.py',
         downloadBtn: '💾 Descargar .py',
-        downloadTitle: 'Descargar código como meu_programa.py',
-        downloadAria: 'Descargar código como archivo meu_programa.py',
+        downloadTitle: 'Descargar código como mi_programa.py',
+        downloadAria: 'Descargar código como archivo mi_programa.py',
         clearCodeBtn: '🧹 Limpiar',
         clearCodeTitle: 'Borrar todo el código del editor',
         stopBtn: '⏹ Detener',
@@ -586,6 +607,7 @@
         statusNotLoaded: 'Python aún no cargado',
         statusLoading: 'Cargando Python…',
         statusWorkerDownloading: 'Descargando Python… (solo tarda la 1ª vez)',
+        workerNotReady: 'Python todavía no ha terminado de cargar.',
         statusReady: 'Python {version} listo ✓',
         statusReadyShort: 'Listo ✓',
         statusFailed: 'Error en Python',
@@ -806,6 +828,18 @@
           mdEmpty: '# Mejoras y Tareas — Tecnología para Todos\n\nNinguna tarea registrada.',
         },
       },
+      tasksApi: {
+        errors: {
+          rateLimit:
+            'Alcanzaste el límite de 5 envíos por hora. Espera un poco antes de enviar nuevamente.',
+          validation: 'Revisa los campos completados e inténtalo de nuevo.',
+          editForbidden: 'Sin permiso para editar esta tarea.',
+          editFailed: 'No se pudo actualizar esta tarea.',
+          deleteForbidden: 'Sin permiso para eliminar esta tarea.',
+          deleteFailed: 'No se pudo eliminar esta tarea.',
+          network: 'Sin conexión con el servidor en este momento. Inténtalo de nuevo en unos instantes.',
+        },
+      },
       footer: {
         developedBy: 'Desarrollado por ',
         author: 'Lucas Rafael Kammer',
@@ -831,8 +865,10 @@
         toggleThemeToDark: 'Switch to dark mode',
         toggleThemeToLight: 'Switch to light mode',
         greetingsAria: 'Greetings in multiple languages',
+        brandHomeLink: 'Tecnologia para Todos — home',
       },
       header: {
+        brand: 'Tecnologia para Todos',
         subtitle: 'Open Educational Project • Built for Beginners',
         tabs: {
           inicio: 'Home',
@@ -939,6 +975,7 @@
         openFreePlaygroundBtn: '💻 Open Free Playground →',
         loadedToast: '💻 "{title}" loaded! Click ▶ Run Code.',
         defaultExampleTitle: 'Example',
+        miniProjectFallback: 'Mini Project',
       },
       glossary: {
         eyebrow: 'Programming dictionary',
@@ -975,9 +1012,10 @@
         fontDownAria: 'Decrease font size',
         fontUpTitle: 'Increase font size',
         fontUpAria: 'Increase font size',
+        downloadFilename: 'my_program.py',
         downloadBtn: '💾 Download .py',
-        downloadTitle: 'Download code as meu_programa.py',
-        downloadAria: 'Download code as meu_programa.py',
+        downloadTitle: 'Download code as my_program.py',
+        downloadAria: 'Download code as my_program.py',
         clearCodeBtn: '🧹 Clear',
         clearCodeTitle: 'Clear all code in the editor',
         stopBtn: '⏹ Stop',
@@ -990,6 +1028,7 @@
         statusNotLoaded: 'Python not loaded yet',
         statusLoading: 'Loading Python…',
         statusWorkerDownloading: 'Downloading Python… (only on first run)',
+        workerNotReady: 'Python has not finished loading yet.',
         statusReady: 'Python {version} ready ✓',
         statusReadyShort: 'Ready ✓',
         statusFailed: 'Python failed',
@@ -1208,6 +1247,18 @@
           copiedMdToast: '📋 Task list copied as Markdown!',
           mdHeader: '# 💡 Feedback & Tasks — Tecnologia para Todos\n',
           mdEmpty: '# Feedback & Tasks — Tecnologia para Todos\n\nNo tasks recorded.',
+        },
+      },
+      tasksApi: {
+        errors: {
+          rateLimit:
+            'You reached the limit of 5 submissions per hour. Please wait a bit before trying again.',
+          validation: 'Check the fields you filled in and try again.',
+          editForbidden: 'You do not have permission to edit this task.',
+          editFailed: 'Could not update this task.',
+          deleteForbidden: 'You do not have permission to delete this task.',
+          deleteFailed: 'Could not delete this task.',
+          network: 'No connection to the server right now. Please try again in a moment.',
         },
       },
       footer: {

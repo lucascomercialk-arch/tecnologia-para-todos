@@ -253,7 +253,12 @@ async def tpt_run(source):
 
   async function init() {
     try {
-      post({ type: 'status', state: 'loading', message: 'Baixando o Python… (só demora na 1ª vez)' });
+      post({
+        type: 'status',
+        state: 'loading',
+        messageKey: 'playground.statusWorkerDownloading',
+        message: 'Baixando o Python… (só demora na 1ª vez)',
+      });
       importScripts(PYODIDE_INDEX_URL + 'pyodide.js');
       // eslint-disable-next-line no-undef
       pyodide = await loadPyodide({ indexURL: PYODIDE_INDEX_URL });
@@ -306,7 +311,13 @@ async def tpt_run(source):
   self.onmessage = (event) => {
     const msg = event.data || {};
     if (msg.type === 'run') {
-      if (!tptRun) return post({ type: 'fatal', message: 'O Python ainda não terminou de carregar.' });
+      if (!tptRun) {
+        return post({
+          type: 'fatal',
+          messageKey: 'playground.workerNotReady',
+          message: 'O Python ainda não terminou de carregar.',
+        });
+      }
       run(String(msg.code || ''));
     } else if (msg.type === 'input') {
       if (pendingInput) {

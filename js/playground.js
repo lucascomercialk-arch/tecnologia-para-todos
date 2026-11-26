@@ -50,6 +50,9 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
   let activeInputCleanup = null;
   let lastStatus = { state: 'loading', key: 'playground.statusNotLoaded', vars: null };
   let lastExampleLabel = { key: 'playground.defaultLabel', vars: null };
+  let lastError = null;
+  let lastErrorCard = null;
+  let lastDefaultCode = getDefaultCode();
 
   const els = {};
 
@@ -347,7 +350,7 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
   async function downloadCode() {
     await ensureEditor();
     const code = getCode();
-    const filename = 'meu_programa.py';
+    const filename = t('playground.downloadFilename') || 'meu_programa.py';
     const blob = new Blob([code], { type: 'text/x-python;charset=utf-8' });
     const url = URL.createObjectURL(blob);
 
@@ -405,7 +408,7 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
   function handleWorkerMessage(msg) {
     switch (msg.type) {
       case 'status': {
-        const key = msg.state === 'loading' ? 'playground.statusWorkerDownloading' : (msg.message || 'playground.statusLoading');
+        const key = msg.messageKey || (msg.state === 'loading' ? 'playground.statusWorkerDownloading' : (msg.message || 'playground.statusLoading'));
         setStatus(msg.state || 'loading', key);
         break;
       }
@@ -416,11 +419,13 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
         waiters.forEach((fn) => fn());
         break;
       }
-      case 'fatal':
+      case 'fatal': {
         setStatus('error', 'playground.statusFailed');
-        appendSystem('⚠️ ' + (msg.message || t('playground.loadPythonError')), 'warn');
+        const fatalMsg = msg.messageKey ? t(msg.messageKey) : (msg.message || t('playground.loadPythonError'));
+        appendSystem('⚠️ ' + fatalMsg, 'warn');
         setRunningUI(false);
         break;
+      }
       case 'stdout':
         appendStream(msg.text, 's-stdout');
         break;
@@ -444,6 +449,8 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
      ========================================================= */
   function clearConsole() {
     if (activeInputCleanup) activeInputCleanup();
+    lastError = null;
+    lastErrorCard = null;
     if (els.console) els.console.innerHTML = '';
   }
 
@@ -640,12 +647,9 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
     return { title, explanation, tip, line, codeLine, original: err.original || `${type}: ${msg}` };
   }
 
-  function renderFriendlyError(err) {
-    if (!els.console) return;
+  function buildErrorCard(err) {
     const info = translateError(err);
     const { escapeHtml } = TPT.syntax;
-
-    if (info.line) highlightErrorLine(info.line);
 
     const card = document.createElement('div');
     card.className = 'err-card';
@@ -662,7 +666,16 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
         <div class="err-original">${escapeHtml(t('playground.errors.originalLabel'))} ${escapeHtml(info.original)}</div>
       </div>
     `;
-    els.console.appendChild(card);
+    return { card, line: info.line };
+  }
+
+  function renderFriendlyError(err) {
+    if (!els.console) return;
+    const built = buildErrorCard(err);
+    if (built.line) highlightErrorLine(built.line);
+    lastError = err;
+    lastErrorCard = built.card;
+    els.console.appendChild(built.card);
     scrollConsoleToEnd();
   }
 
@@ -708,7 +721,10 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
     if (activeInputCleanup) activeInputCleanup();
     setRunningUI(false);
 
-    const secs = typeof msg.elapsed === 'number' ? msg.elapsed.toFixed(2).replace('.', ',') : null;
+    const isEn = TPT.i18n && typeof TPT.i18n.getLang === 'function' && TPT.i18n.getLang() === 'en';
+    const secs = typeof msg.elapsed === 'number'
+      ? (isEn ? msg.elapsed.toFixed(2) : msg.elapsed.toFixed(2).replace('.', ','))
+      : null;
     if (msg.ok) {
       setStatus('ready', 'playground.statusReadyShort');
       const timeSuffix = secs ? t('playground.finishedTime', { secs }) : '';
@@ -739,6 +755,7 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
   function init() {
     cacheElements();
     if (!els.editorHost) return;
+    lastDefaultCode = getDefaultCode();
 
     els.runBtn.addEventListener('click', runCode);
     els.stopBtn.addEventListener('click', stopCode);
@@ -774,6 +791,20 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
       TPT.i18n.onChange(() => {
         setStatus(lastStatus.state, lastStatus.key, lastStatus.vars);
         setExampleLabel(lastExampleLabel.key, lastExampleLabel.vars);
+        if (lastError && lastErrorCard && lastErrorCard.parentNode) {
+          const rebuilt = buildErrorCard(lastError);
+          lastErrorCard.replaceWith(rebuilt.card);
+          lastErrorCard = rebuilt.card;
+        }
+        const nextDefaultCode = getDefaultCode();
+        if (monacoEditor && monacoEditor.getValue() === lastDefaultCode) {
+          monacoEditor.setValue(nextDefaultCode);
+          clearErrorHighlight();
+        } else if (fallbackTextarea && fallbackTextarea.value === lastDefaultCode) {
+          fallbackTextarea.value = nextDefaultCode;
+          clearErrorHighlight();
+        }
+        lastDefaultCode = nextDefaultCode;
       });
     }
   }
@@ -787,5 +818,5 @@ print("Olá,", nome, "de", pais + "! Que alegria ter você aqui! 🎉")
     }, 50);
   }
 
-  TPT.playground = { init, onActivate, setCode, getCode, downloadCode, runCode, stopCode, ensureWorker };
+  TPT.playground = { init, onActivate, setCode, getCode, downloadCode, runCode, stopCode, ensureWorker, translateError };
 })();

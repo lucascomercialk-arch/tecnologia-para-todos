@@ -43,7 +43,7 @@
       },
     };
   </script>
-  <!-- Anti-FOUC: aplica o tema salvo ou do sistema antes da renderização -->
+  <!-- Anti-FOUC: aplica o tema e o idioma salvos/do navegador antes da renderização -->
   <script>
     (function () {
       try {
@@ -54,6 +54,12 @@
         document.documentElement.classList.toggle('dark', theme === 'dark');
         var meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.setAttribute('content', theme === 'dark' ? '#0B1120' : '#131B3A');
+
+        var rawLang = (localStorage.getItem('tpt_lang') || navigator.language || '').toLowerCase();
+        var htmlLang = rawLang === 'es' || rawLang.indexOf('es-') === 0
+          ? 'es'
+          : (rawLang === 'en' || rawLang.indexOf('en-') === 0 ? 'en' : 'pt-BR');
+        document.documentElement.setAttribute('lang', htmlLang);
       } catch (_) {}
     })();
   </script>
@@ -66,12 +72,12 @@
   <!-- ===================== CABEÇALHO ===================== -->
   <header class="sticky top-0 z-40 bg-creme/90 backdrop-blur border-b border-navy/5">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center gap-x-4 gap-y-3">
-      <a href="#inicio" class="flex items-center gap-3 group" aria-label="Tecnologia para Todos - início">
+      <a href="#inicio" class="flex items-center gap-3 group" data-i18n-aria-label="a11y.brandHomeLink" aria-label="Tecnologia para Todos - início">
         <span class="w-11 h-11 rounded-2xl bg-navy grid place-items-center shadow-soft group-hover:scale-105 transition">
           <svg viewBox="0 0 64 64" class="w-7 h-7" aria-hidden="true"><path d="M18 22l10 10-10 10" stroke="#FACC15" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 44h14" stroke="#5EEAD4" stroke-width="6" stroke-linecap="round"/></svg>
         </span>
         <span class="leading-tight">
-          <span class="block font-display font-extrabold text-lg sm:text-xl tracking-tight">Tecnologia para Todos</span>
+          <span class="block font-display font-extrabold text-lg sm:text-xl tracking-tight" data-i18n="header.brand">Tecnologia para Todos</span>
           <span class="block text-xs font-semibold uppercase tracking-[0.12em] text-navy/55" data-i18n="header.subtitle">Projeto Educacional Aberto • Feito para Iniciantes</span>
         </span>
       </a>
