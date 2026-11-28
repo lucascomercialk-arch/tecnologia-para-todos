@@ -41,8 +41,24 @@ A partir dessa vivência, decidi construir esta plataforma web: um espaço visua
 * **Editor de Código:** [Monaco Editor](https://microsoft.github.io/monaco-editor/)
 * **Interpretador Python Client-Side:** [Pyodide (WebAssembly)](https://pyodide.org/)
 * **Backend opcional de Tasks (`tpt-tasks-api/`):** Python 3, FastAPI, Uvicorn, SQLite (`WAL`) e integração com GitHub Issues — veja [tpt-tasks-api/README.md](tpt-tasks-api/README.md) para deploy no servidor Linux.
-* **Testes automatizados (i18n e sintaxe):** `npm run check:syntax` e `npm test` (suíte Node.js zero-dependências em [tests/i18n.test.cjs](tests/i18n.test.cjs) + workflow CI em `.github/workflows/ci.yml` — guia completo em [docs/I18N.md](docs/I18N.md))
+* **Testes automatizados e CI:** suíte de internacionalização ([tests/i18n.test.cjs](tests/i18n.test.cjs)), testes unitários com **Vitest** ([tests/unit/](tests/unit/)) e testes E2E cross-browser/mobile com **Playwright** ([tests/e2e/](tests/e2e/)), integrados ao GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml)).
 * **Hospedagem:** GitHub Pages
+
+---
+
+## 🧪 Testes Automatizados
+
+Com **Node.js 20+** instalado:
+
+```bash
+npm ci
+npm run check:syntax
+npm test
+npx playwright install chromium firefox webkit
+npm run test:e2e
+```
+
+Consulte [CONTRIBUTING.md](CONTRIBUTING.md) para a lista completa de scripts (`test:i18n`, `test:unit`, `test:e2e:chromium`, `test:all`) e [docs/I18N.md](docs/I18N.md) para o guia de internacionalização.
 
 ---
 
