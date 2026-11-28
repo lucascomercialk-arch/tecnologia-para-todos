@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import os
 import sqlite3
 import uuid
 from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
+
+from schemas import ALLOWED_MODULES, ALLOWED_PRIORITIES, ALLOWED_STATUSES
 
 PUBLIC_COLUMNS = (
     "id",
@@ -36,7 +39,7 @@ def to_public_task(row: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
 
 
 class TaskDatabase:
-    """Repositório SQLite com WAL habilitado para armazenamento das tasks."""
+    """Repositório SQLite com WAL habilitado e restrições de integridade."""
 
     def __init__(self, db_path: str) -> None:
         self.db_path = db_path
@@ -49,21 +52,27 @@ class TaskDatabase:
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;")
         conn.execute("PRAGMA busy_timeout=5000;")
+        conn.execute("PRAGMA foreign_keys=ON;")
+        conn.execute("PRAGMA temp_store=MEMORY;")
         return conn
 
     def init_db(self) -> None:
-        """Cria a tabela tasks e índices caso ainda não existam."""
+        """Cria a tabela tasks, CHECK constraints e índices caso ainda não existam."""
+        modules_sql = ", ".join(f"'{m}'" for m in ALLOWED_MODULES)
+        priorities_sql = ", ".join(f"'{p}'" for p in ALLOWED_PRIORITIES)
+        statuses_sql = ", ".join(f"'{s}'" for s in ALLOWED_STATUSES)
+
         with closing(self._connect()) as conn:
             with conn:
                 conn.execute(
-                    """
+                    f"""
                     CREATE TABLE IF NOT EXISTS tasks (
                         id TEXT PRIMARY KEY,
-                        title TEXT NOT NULL,
-                        module TEXT NOT NULL,
-                        description TEXT NOT NULL DEFAULT '',
-                        priority TEXT NOT NULL DEFAULT 'normal',
-                        status TEXT NOT NULL DEFAULT 'pending',
+                        title TEXT NOT NULL CHECK (length(title) BETWEEN 5 AND 120),
+                        module TEXT NOT NULL CHECK (module IN ({modules_sql})),
+                        description TEXT NOT NULL DEFAULT '' CHECK (length(description) <= 1000),
+                        priority TEXT NOT NULL DEFAULT 'normal' CHECK (priority IN ({priorities_sql})),
+                        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ({statuses_sql})),
                         owner_id TEXT NOT NULL,
                         github_issue_number INTEGER,
                         github_issue_url TEXT,
@@ -78,18 +87,39 @@ class TaskDatabase:
                     "CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at DESC);"
                 )
 
+        if self.db_path != ":memory:" and os.name == "posix":
+            db_file = Path(self.db_path)
+            if db_file.exists():
+                try:
+                    os.chmod(db_file, 0o600)
+                except OSError:
+                    pass
+
     def get_journal_mode(self) -> str:
         """Retorna o modo de journal ativo no SQLite (ex.: 'wal')."""
         with closing(self._connect()) as conn:
             row = conn.execute("PRAGMA journal_mode;").fetchone()
             return str(row[0]).lower() if row else "unknown"
 
+    def check_health(self) -> tuple[bool, str]:
+        """Executa consulta rápida de integridade no SQLite e retorna (saudavel, journal_mode)."""
+        try:
+            with closing(self._connect()) as conn:
+                conn.execute("SELECT 1;").fetchone()
+                row = conn.execute("PRAGMA journal_mode;").fetchone()
+                mode = str(row[0]).lower() if row else "unknown"
+                return True, mode
+        except sqlite3.Error:
+            return False, "error"
+
     def list_tasks(
         self,
         module: Optional[str] = None,
         status: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
     ) -> list[dict[str, Any]]:
-        """Lista tasks públicas com filtros opcionais por módulo e status."""
+        """Lista tasks públicas com filtros opcionais e paginação segura."""
         clauses: list[str] = []
         params: list[Any] = []
         if module:
@@ -101,7 +131,8 @@ class TaskDatabase:
 
         where_sql = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         cols_sql = ", ".join(PUBLIC_COLUMNS)
-        sql = f"SELECT {cols_sql} FROM tasks {where_sql} ORDER BY created_at DESC;"
+        sql = f"SELECT {cols_sql} FROM tasks {where_sql} ORDER BY created_at DESC LIMIT ? OFFSET ?;"
+        params.extend([int(limit), int(offset)])
 
         with closing(self._connect()) as conn:
             rows = conn.execute(sql, params).fetchall()
