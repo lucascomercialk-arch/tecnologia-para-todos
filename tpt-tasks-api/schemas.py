@@ -1,10 +1,11 @@
-"""Esquemas Pydantic e regras de validação para a API de Tasks."""
+"""Esquemas Pydantic e regras estritas de validação para a API de Tasks."""
 
 from __future__ import annotations
 
+import re
 from typing import Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 ALLOWED_MODULES = (
     "python",
@@ -18,8 +19,37 @@ ALLOWED_MODULES = (
 ALLOWED_PRIORITIES = ("baixa", "normal", "alta")
 ALLOWED_STATUSES = ("pending", "in_progress", "done")
 
+_CLIENT_ID_RE = re.compile(r"^[A-Za-z0-9._-]{6,128}$")
+_TASK_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+_CONTROL_CHARS_TITLE_RE = re.compile(r"[\x00-\x1f\x7f]")
+_CONTROL_CHARS_DESC_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def validate_client_id(raw_value: Optional[str]) -> str:
+    """Valida o identificador anônimo enviado no header X-Client-Id."""
+    cleaned = (raw_value or "").strip()
+    if not cleaned:
+        raise ValueError("Header X-Client-Id é obrigatório e não pode ser vazio.")
+    if len(cleaned) > 128:
+        raise ValueError("Header X-Client-Id excede o tamanho máximo permitido.")
+    if not _CLIENT_ID_RE.match(cleaned):
+        raise ValueError(
+            "Header X-Client-Id inválido: use 6 a 128 caracteres (letras, números, '.', '_' ou '-')."
+        )
+    return cleaned
+
+
+def validate_task_id(raw_value: str) -> str:
+    """Valida o formato do identificador da task no path."""
+    cleaned = (raw_value or "").strip()
+    if not _TASK_ID_RE.match(cleaned):
+        raise ValueError("Identificador de task inválido.")
+    return cleaned
+
 
 def _validate_title_value(value: str) -> str:
+    if _CONTROL_CHARS_TITLE_RE.search(value):
+        raise ValueError("O título contém caracteres de controle ou quebras de linha inválidas.")
     cleaned = value.strip()
     if len(cleaned) < 5 or len(cleaned) > 120:
         raise ValueError("O título deve ter entre 5 e 120 caracteres.")
@@ -37,7 +67,10 @@ def _validate_module_value(value: str) -> str:
 def _validate_description_value(value: Optional[str]) -> str:
     if value is None:
         return ""
-    cleaned = value.strip()
+    normalized = value.replace("\r\n", "\n").replace("\r", "\n")
+    if _CONTROL_CHARS_DESC_RE.search(normalized):
+        raise ValueError("A descrição contém caracteres de controle inválidos.")
+    cleaned = normalized.strip()
     if not cleaned:
         return ""
     if len(cleaned) < 10 or len(cleaned) > 1000:
@@ -55,6 +88,8 @@ def _validate_priority_value(value: str) -> str:
 
 class TaskCreate(BaseModel):
     """Payload de criação de task (POST /api/tasks)."""
+
+    model_config = ConfigDict(extra="forbid")
 
     title: str
     module: str = "melhorias"
@@ -84,6 +119,8 @@ class TaskCreate(BaseModel):
 
 class TaskUpdate(BaseModel):
     """Payload de atualização parcial de task (PATCH /api/tasks/{id})."""
+
+    model_config = ConfigDict(extra="forbid")
 
     title: Optional[str] = None
     module: Optional[str] = None

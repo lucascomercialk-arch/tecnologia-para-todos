@@ -1,4 +1,4 @@
-name: Frontend Checks (i18n, Unit & E2E)
+name: Frontend & API Checks (i18n, Unit, Security & E2E)
 
 on:
   push:
@@ -30,6 +30,25 @@ jobs:
 
       - name: Run Vitest unit tests
         run: npm run test:unit
+
+  api-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: tpt-tasks-api/requirements.txt
+
+      - name: Install API dependencies
+        run: python -m pip install -r tpt-tasks-api/requirements.txt
+
+      - name: Run Tasks API & Security pytest suite
+        run: pytest --rootdir=tpt-tasks-api -v tpt-tasks-api/tests
 
   e2e:
     runs-on: ubuntu-latest
